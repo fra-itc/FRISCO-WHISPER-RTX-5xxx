@@ -223,13 +223,32 @@ def convert_to_wav(input_file, output_dir):
     print_colored(f"[OK] WAV creato: {output_path}", Colors.GREEN)
     return output_path
 
-def transcribe_audio(wav_path, output_dir, task='transcribe', language=None, 
+def get_audio_duration(audio_file):
+    """Ottiene la durata dell'audio in secondi"""
+    try:
+        cmd = [
+            'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return float(result.stdout.strip())
+    except:
+        return None
+
+def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
                      model_size='medium', compute_type='float16', beam_size=5):
     """Trascrizione con Faster-Whisper"""
     print_colored("\n[2/3] Trascrizione...", Colors.CYAN)
     lang_display = language if language else "auto-detect"
     print_colored(f"Modello: {model_size} | Compute: {compute_type} | Lingua: {lang_display}", Colors.CYAN)
     print_colored(f"Beam: {beam_size}", Colors.CYAN)
+
+    # Ottieni durata audio per calcolare ETA
+    audio_duration = get_audio_duration(wav_path)
+    if audio_duration:
+        minutes = int(audio_duration // 60)
+        seconds = int(audio_duration % 60)
+        print_colored(f"Durata audio: {minutes}m {seconds}s", Colors.CYAN)
     
     from faster_whisper import WhisperModel
     
@@ -294,6 +313,7 @@ def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
             print()
 
             segments_list = []
+            start_time = time.time()
 
             with open(output_path, 'w', encoding='utf-8') as f:
                 segment_count = 0
@@ -320,9 +340,31 @@ def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
 
                     print()  # Newline dopo ogni segmento
 
-                    # Mostra progresso
+                    # Calcola e mostra ETA ogni 5 segmenti
                     if segment_count % 5 == 0:
-                        print_colored(f"  [{segment_count} segmenti processati...]", Colors.CYAN)
+                        elapsed_time = time.time() - start_time
+                        audio_processed = segment.end  # Tempo audio processato in secondi
+
+                        if audio_duration and audio_processed > 0:
+                            # Calcola velocità di processamento
+                            processing_speed = audio_processed / elapsed_time  # audio_sec / real_sec
+                            remaining_audio = audio_duration - audio_processed
+                            eta_seconds = remaining_audio / processing_speed if processing_speed > 0 else 0
+
+                            # Formatta ETA
+                            eta_min = int(eta_seconds // 60)
+                            eta_sec = int(eta_seconds % 60)
+                            progress_pct = (audio_processed / audio_duration) * 100
+
+                            print_colored(
+                                f"  [{segment_count} seg] "
+                                f"Progresso: {progress_pct:.1f}% | "
+                                f"Velocità: {processing_speed:.1f}x | "
+                                f"ETA: {eta_min}m {eta_sec}s",
+                                Colors.CYAN
+                            )
+                        else:
+                            print_colored(f"  [{segment_count} segmenti processati...]", Colors.CYAN)
 
             print()
             print_colored("="*70, Colors.CYAN)
