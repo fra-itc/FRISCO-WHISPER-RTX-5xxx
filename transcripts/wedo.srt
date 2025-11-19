@@ -1,0 +1,640 @@
+1
+00:00:00,400 --> 00:00:10,419
+Posso registrarti Moris, vero? Sì. Perfetto. Ti vai di rispiegare che livello di integrazione
+
+2
+00:00:10,419 --> 00:00:18,289
+dell'AI vorresti nella platforma WIDU? Ok, io pensavo ad un'integrazione di tipo
+
+3
+00:00:18,289 --> 00:00:27,010
+predittivo. Cosa vuol dire? Vuol dire che l'utente inserisce, per dire come informazione
+
+4
+00:00:27,010 --> 00:00:34,890
+basa, il proprio indirizzo di residenza. Quindi quello sarà un punto degli ipotetici
+
+5
+00:00:34,890 --> 00:00:44,270
+due e la retta che si verrà a formare potrà essere il raggio d'azione predittivo dell'AI.
+
+6
+00:00:44,270 --> 00:00:52,509
+Cosa vuol dire? Vuol dire che se un utente, vogliamo l'elettricista, inserisce i suoi
+
+7
+00:00:52,509 --> 00:00:59,950
+appuntamenti analogici nell'agenda, quindi un appuntamento alle 10 di mattina fino a
+
+8
+00:00:59,950 --> 00:01:13,140
+mezzogiorno, un secondo appuntamento alle 14 fino alle 16, in un punto B la nostra piattaforma
+
+9
+00:01:13,140 --> 00:01:22,739
+potrà suggerire all'elettricista sia dei task da mezzogiorno alle 14 lungo il tragitto
+
+10
+00:01:22,739 --> 00:01:34,420
+da A a B e poi, terminato il lavoro pomerigliano, quindi con un timer, da una certa ora in poi
+
+11
+00:01:34,420 --> 00:01:42,180
+comincerà a monitorare e suggerire all'utente dei task dal punto in cui si trova fino al
+
+12
+00:01:42,180 --> 00:01:52,420
+ritorno alla propria residenza. Certo, ma secondo me è da fare perché uno mette le
+
+13
+00:01:52,420 --> 00:02:02,329
+sue fasce libere o essi ottenerali, giusto? Sì, esatto. E le sue competenze, la piattaforma
+
+14
+00:02:02,329 --> 00:02:12,189
+già lo sa e va a unire la domanda e l'offerta grazie anche al pricing dinamico. Esatto,
+
+15
+00:02:12,189 --> 00:02:21,550
+e poi diciamo che a questo punto si potrà prevedere sempre nell'iscrizione una serie
+
+16
+00:02:21,550 --> 00:02:29,590
+di informazioni anche tante compilabili o meno a discrizione dell'utente, però informandolo
+
+17
+00:02:29,590 --> 00:02:38,590
+che quante più informazioni darà, tanto più sarà fatto su misura di servizio. Quindi se
+
+18
+00:02:38,590 --> 00:02:45,590
+l'utente dà l'indirizzo di casa, l'indirizzo di lavoro, banalmente gli orari. Il filtro,
+
+19
+00:02:45,590 --> 00:02:50,909
+ho bisogno dentro 60 minuti o posso aspettare fino a domani? Cambia tanto l'esperibilità.
+
+20
+00:02:50,909 --> 00:03:00,860
+Esatto, quindi rendere il tutto fluido anche nella misura in cui uno magari dice ce l'ho bisogno
+
+21
+00:03:00,860 --> 00:03:10,340
+subito ma posso aspettare anche fino a domani, oppure ce l'ho bisogno soltanto ora. Una cosa di
+
+22
+00:03:10,340 --> 00:03:19,259
+questo tipo, quindi dà all'utente anche un po' più di libertà e ci toglie un affanno che non
+
+23
+00:03:19,259 --> 00:03:27,460
+necessariamente ci dobbiamo caricare di default, perché magari l'utente è abituato a aspettare
+
+24
+00:03:27,460 --> 00:03:35,020
+una settimana, quindi aspettare un giorno già per lui è una vittoria totale. Uno orale non se lo immagina
+
+25
+00:03:35,020 --> 00:03:44,740
+vero? No, no, poi come si dice, se l'utente si mette anche le sue fasce di disponibilità e il luogo
+
+26
+00:03:44,740 --> 00:03:53,370
+che lo sa già il database, le hai per fare un matching della Madonna. Ti può fare esatto il
+
+27
+00:03:53,370 --> 00:04:03,889
+matching del mattino per il pomeriggio e quindi riesce a finizzare enormemente tutti i processi e
+
+28
+00:04:03,889 --> 00:04:13,810
+quindi a soddisfare magari una richiesta con una minor offerta, perché comunque riesce in qualche
+
+29
+00:04:13,810 --> 00:04:22,410
+modo a spalmarla un po' nel marco della giornata. Diventa predictiva per l'utente, quindi magari
+
+30
+00:04:22,689 --> 00:04:28,689
+suggerisce cose che uno diversamente non andrebbe a ricercare. Anche viceversa, perché magari
+
+31
+00:04:28,689 --> 00:04:38,970
+l'artigiano dice vabbè vi faccio 15 chilometri però c'è un bel lavoro. Esatto, esatto, sì sì sì,
+
+32
+00:04:38,970 --> 00:04:47,649
+però quantomeno l'intelligenza artificiale può suggerire anche queste due opzioni. Diversamente
+
+33
+00:04:47,649 --> 00:04:53,850
+magari uno prenderebbe solo quello che ha una mentalità meno imprenditoriale, ne prenderebbe
+
+34
+00:04:53,850 --> 00:05:01,610
+solo una. Invece Giannini dice guarda tu a fare questa cosa guadagni 50 euro, però se disposti
+
+35
+00:05:01,610 --> 00:05:11,790
+5 chilometri più là ne guadagni 100. Certo, dai allora la metto già nel piano. Diciamo che con
+
+36
+00:05:11,790 --> 00:05:19,990
+l'intelligenza artificiale viene fuori la macchina definitiva perché a quel punto ottimizzerebbe
+
+37
+00:05:19,990 --> 00:05:30,620
+le entrate di chiunque in maniera passiva da parte dell'utente, quindi figurati. Anche interessante
+
+38
+00:05:30,620 --> 00:05:39,019
+mettere magari anche delle necessità continue di piccole cose che uno lo mette, magari se
+
+39
+00:05:39,019 --> 00:05:48,750
+l'interessato se costa poco o pack. Esatto, esatto e avevo pensato sempre rispetto al tema
+
+40
+00:05:48,750 --> 00:06:01,029
+gamification se ci fosse nella pagina dell'utente magari a fine giornata o durante la giornata un
+
+41
+00:06:01,029 --> 00:06:10,949
+contatore che dice se avessi risposto a 3 dei tasker che ti ho proposto avresti guadagnato 30
+
+42
+00:06:10,949 --> 00:06:19,709
+euro in più. Così uno a fine giornata quando vede un giorno 50, un altro giorno 70 magari si
+
+43
+00:06:19,709 --> 00:06:31,600
+voglia anche a dar fiducia e dice oggi seguo l'applicazione, come la vedi? Che attualmente
+
+44
+00:06:31,600 --> 00:06:40,790
+sono i tassisti che lavorano per Uber. Esatto. Addirittura Uber ormai ha le macchine e cerca
+
+45
+00:06:40,790 --> 00:06:51,019
+gli autisti dipendenti per imprendere. Per me non avete un futuro di avere il migliore elettricista
+
+46
+00:06:51,019 --> 00:07:06,500
+di Milano. Esatto, esatto. La elite squad, i migliori con we do, qualcosa del genere. Esatto,
+
+47
+00:07:06,500 --> 00:07:16,899
+esatto. Ma secondo me questa parte è proprio la svolta. Allora non voglio nasconderti che va
+
+48
+00:07:16,899 --> 00:07:26,740
+bene avere l'EGI oggi, fate bene, fiche con un sacco di soldi, però se divento co-founder
+
+49
+00:07:26,740 --> 00:07:38,540
+volentieri. Io ti dico, sarei felicissimo. A te io dovrei con te sinceramente. Anche perché questo
+
+50
+00:07:38,540 --> 00:07:48,420
+rischia secondo me di venire fuori un bel progetto e messo insieme con persone le
+
+51
+00:07:48,420 --> 00:07:58,980
+conoscerai poi, a parte tutte di gran valore ma poi persone che lo vedrai quando ci parli
+
+52
+00:07:58,980 --> 00:08:07,660
+ti si aprono altre venti opportunità lavorative che uno dice cazzo, qua si può fare il botto anche
+
+53
+00:08:07,660 --> 00:08:19,500
+in altre dieci strade. Il team vincente e le mie idee innovative sull'utilizzo dell'EGI che
+
+54
+00:08:19,500 --> 00:08:30,889
+veramente è un anno che ci... anzi, ti ho mandato via WhatsApp un preprint di un paper che vorrei
+
+55
+00:08:30,889 --> 00:08:35,450
+pubblicare ma ho qualche difficoltà a pubblicarlo perché non ho un dottorato ma nemmeno una laurea.
+
+56
+00:08:35,450 --> 00:08:48,990
+Però ormai è la bozza ma l'inglese tu lo sai bene quindi capirei bene cosa dice. Il quattore
+
+57
+00:08:48,990 --> 00:08:54,230
+che vedi è il mio zio d'America che invece lui ce l'ha dottorato solo che resta un tempo per
+
+58
+00:08:54,230 --> 00:09:00,230
+questa cosa che lui attualmente pubblica nell'AI e ha detto cazzo mi fai l'endorsement che pubblichi
+
+59
+00:09:00,230 --> 00:09:04,029
+tu e mi fai pubblichare il mio primo articolo che poi mi sembra che se ne pubblichi cinque...
+
+60
+00:09:04,029 --> 00:09:12,990
+Che figata! Poi anche... Poi anche ottenere un dottorato in omaggio mi pare. No, no,
+
+61
+00:09:12,990 --> 00:09:19,429
+dopo me lo leggo super volentieri. E io di tutto quello che faccio,
+
+62
+00:09:19,429 --> 00:09:28,230
+ormai applico questo protocollo chiamato Orchidea che è per gestire la relazione umana AI al massimo
+
+63
+00:09:28,230 --> 00:09:36,710
+per il massimo beneficio di tra ambi. Certo quindi non ti dico secondo me con questa parte
+
+64
+00:09:36,710 --> 00:09:48,230
+qua facciamo il botto. E allora da un punto di vista pratico io ti dico sono già iper felice
+
+65
+00:09:48,230 --> 00:09:57,350
+e iper convinto quello che operativamente sono i punti che dobbiamo capire un attimo come fare
+
+66
+00:09:57,350 --> 00:10:08,309
+tu hai fatto le condizioni economiche, firma al bio, metà fase 1 e poi via via chiusura fase 1,
+
+67
+00:10:08,309 --> 00:10:19,909
+chiusura fase 2. E a me sta benissimo quello che è il tema è che il tax, star tax l'altro giorno ha
+
+68
+00:10:19,909 --> 00:10:29,909
+detto qua c'è da costituire una società ad hoc quindi che sarà la startup e lui diceva io vi
+
+69
+00:10:29,909 --> 00:10:37,629
+suggerisco dato che siamo a fine novembre... Vi farà gennaio? Fate la gennaio perché banalmente
+
+70
+00:10:37,629 --> 00:10:49,830
+avrete degli addempimenti x da gestire che diversamente non dovreste fare per la
+
+71
+00:10:49,830 --> 00:10:57,299
+di corso con i relativi costi quindi noi eravamo rimasti d'accordo con lui che la società l'avremmo
+
+72
+00:10:57,299 --> 00:11:11,139
+aperta a gennaio di conseguenza questa parte qua dobbiamo capire devo capire io operativamente se
+
+73
+00:11:11,139 --> 00:11:20,320
+posso. Allora Maurice allora ci conosciamo da tanti anni ma anche se fossero 18 milioni di euro
+
+74
+00:11:20,320 --> 00:11:30,799
+sarebbe un mese e mezzo di lavoro. Per me è iniziare subito e poi formalizziamo la
+
+75
+00:11:30,799 --> 00:11:37,000
+cosa tra di noi poi il discorso di accolto e altre cose anche se si fa gennaio non è un
+
+76
+00:11:37,000 --> 00:11:43,120
+problema. Non ti rascordo che sarebbe più comodo a me avere a dicembre i consulti però magari anche
+
+77
+00:11:43,120 --> 00:11:49,440
+gli esperti di startup hanno già qualche soluzione che ne so una pro forma che almeno me la mettono
+
+78
+00:11:49,919 --> 00:12:00,779
+a bilancio è tutto lì. Sì sì chiaro ecco io questa cosa qua la posso verificare penso che
+
+79
+00:12:00,779 --> 00:12:09,779
+comunque in un modo o nell'altro sia smaccabile. La parte più generosa anche in termini di sviluppo
+
+80
+00:12:09,779 --> 00:12:19,899
+è proprio l'inizio ok? Quindi tra l'unque delegare tante parti ok? Per Routine mi so perché poi a chi
+
+81
+00:12:19,899 --> 00:12:27,269
+deleghi non vede nemmeno su a cosa sta lavorando capito? Certo. Che deve fare questa cosa qui
+
+82
+00:12:27,269 --> 00:12:34,870
+lui non vede ne il nome della startup insomma però appunto devo foraggiare un bel po' di
+
+83
+00:12:34,870 --> 00:12:46,039
+sviluppatori e non ascolto che mi viene comodo avere almeno a livello di bilancio averne comunque
+
+84
+00:12:46,039 --> 00:12:52,899
+visto che ho avuto delle uscite che per un mese e mezzo posso anche accipare non è assolutamente
+
+85
+00:12:52,899 --> 00:12:59,620
+una trama. Sì sì ma proprio il tema di contabilità. Contabilità pur esatto visto che ho le uscite
+
+86
+00:12:59,620 --> 00:13:06,820
+io ce li ho subito perché comunque i freelance li pago bene, li pago subito, li pago ogni settimana
+
+87
+00:13:06,820 --> 00:13:16,549
+su avanzamenti per quello corrono altrimenti non fanno un cazzo. Certo quindi allora aspetta
+
+88
+00:13:16,549 --> 00:13:30,629
+fammi pensare perché sono 35 mila il 30 per cento sono tre sei no 10.500 e che sono la prima
+
+89
+00:13:30,629 --> 00:13:40,629
+tranche a firma a Dio. La metà se noi partissimo subito la metà fase 1 invece l'avremo quando?
+
+90
+00:13:40,629 --> 00:13:50,409
+No ma potremmo averla entro fine anno e primi di gennaio. A livello di cash flow non mi interessa
+
+91
+00:13:50,409 --> 00:13:58,879
+che sia dicembre o gennaio assolutamente a livello invece contabile se riesco in questo anno fiscale
+
+92
+00:13:58,879 --> 00:14:10,259
+è meglio perché tutti quanti ovviamente vogliono aumentare. Sì sì no ma io sto
+
+93
+00:14:10,340 --> 00:14:19,820
+facendo adesso questi conti perché voglio capire con loro gli dico io ho un costo che
+
+94
+00:14:19,820 --> 00:14:29,100
+dovrei sostenere da qui a fine anno di 21.000 euro magari loro mi dicono che tanto io questo
+
+95
+00:14:29,100 --> 00:14:37,340
+costo non l'avrei recuperato allora a quel punto gli dico bene allora lo sostengo io come persona
+
+96
+00:14:37,340 --> 00:14:50,179
+fisica. Come java se vuoi anche alla fine. Poi da gennaio partiamo correttamente con le cose
+
+97
+00:14:50,179 --> 00:15:01,580
+fare tutto quanto preciso preferisco anche io. A led così si diventa una cosa così potrebbe
+
+98
+00:15:01,580 --> 00:15:10,220
+essere anche un tema. Se vuoi scaricarti qualche spade con java che servono costi io l'occasione
+
+99
+00:15:10,220 --> 00:15:16,659
+fossi te lo sfrutterei e sarei io a chiederlo a te non è che mi fai la fattura sull'altra società
+
+100
+00:15:16,659 --> 00:15:25,289
+visto che l'altra non c'è entrate. Certo sì sì sì no allora facciamo così e io adesso questa
+
+101
+00:15:25,289 --> 00:15:38,850
+cosa la ragiono ma nelle prossime ore io poi domani vedo costanza la mia altra socia in battaglia
+
+102
+00:15:38,850 --> 00:15:50,169
+che quella che ti dicevo lei ti aveva accennato che mi aveva presentato questa valentina aspetta
+
+103
+00:15:50,169 --> 00:16:03,419
+il conione che magari la conosci sai chi è? Ingellis. Lei da quello che ho capito è un
+
+104
+00:16:03,419 --> 00:16:16,820
+project manager più che altro lei non ha competenze tecniche e lei aveva detto che insomma le sarebbe
+
+105
+00:16:16,820 --> 00:16:25,340
+piaciuto entrare nel progetto e quant'altro però vi dico che io voglio farlo con te questa cosa
+
+106
+00:16:25,700 --> 00:16:33,500
+quindi domani racconterò la costanza e dico guarda è così con l'Ecolà, Francesco vuoi
+
+107
+00:16:33,500 --> 00:16:41,220
+collaboriamo ci conosciamo a 15 anni quindi c'è un rapporto personale oltre lavorativo e vuoi che
+
+108
+00:16:41,220 --> 00:16:51,179
+queste cose lui non sa fare materialmente quindi sa se vengono fatte bene male quali sono i valori
+
+109
+00:16:51,179 --> 00:17:00,460
+aggiunti insomma quindi è pura pro forma e quindi io direi già io domani sera riesco a dirti
+
+110
+00:17:00,460 --> 00:17:12,410
+riusciamo a partire subito. Sotto, fico. Io guarda sarebbe forse il momento dove negli ultimi tre
+
+111
+00:17:12,410 --> 00:17:21,569
+mesi mi metto il cuore in pace almeno per una notte perché so che sta che sta partendo quindi
+
+112
+00:17:21,569 --> 00:17:30,380
+sono qui che proprio sto facendo mille ragionamenti ma sono mille ragionamenti
+
+113
+00:17:30,380 --> 00:17:39,259
+su come fare le cose no subito quindi bene, bene, bene dai bello sono davvero contento
+
+114
+00:17:39,259 --> 00:17:54,339
+no secondo me è così come la stiamo definendo con tutta quella parte anche di supporto di
+
+115
+00:17:54,339 --> 00:18:01,740
+suggerimento eccetera viene fuori una cosa. Ma d'altro sai perché sto registrando Maurice? Perché
+
+116
+00:18:02,099 --> 00:18:10,240
+dei miei esperimenti del protocollo Artidea alla fine l'iperazione umano AI ho iniziato
+
+117
+00:18:10,240 --> 00:18:17,240
+anche a fare delle prove dandole le fotografie dei fogli di bozze fatte intrapersonale le fotografie
+
+118
+00:18:17,240 --> 00:18:24,400
+delle gasbolle e poi ho iniziato a registrare l'audio delle riunioni perché devo stare a fare
+
+119
+00:18:24,400 --> 00:18:32,000
+io un lavoro che lei lo fa in un minuto e lo fa benissimo di trascrivere un audio. Certo. E non
+
+120
+00:18:32,000 --> 00:18:39,460
+anche di prendere appunti. Sì sì sì no è fighissimo infatti. Ti integro quello che siamo
+
+121
+00:18:39,460 --> 00:18:52,779
+detti oggi al World direttamente. Certo no no ma è spettacolare ma tu immagina se pensi quanto è
+
+122
+00:18:52,779 --> 00:18:59,619
+visionaria questa applicazione perché fondamentalmente può decentralizzare l'economia
+
+123
+00:18:59,619 --> 00:19:11,549
+vero vero e quanto è attuale seppur tirando fuori cose che quasi stanno morendo perché giusto
+
+124
+00:19:11,549 --> 00:19:19,769
+l'altro giorno ho visto al telegiornale dicono stanno chiudendo migliaia di negozi perché ormai
+
+125
+00:19:19,769 --> 00:19:30,849
+l'online ha fregato tutti. E' la religita dell'artigiano diciamo del negoziante. Esatto
+
+126
+00:19:30,849 --> 00:19:38,890
+esatto è praticamente portare l'artigiano a giocarsela con i big dandogli uno strumento
+
+127
+00:19:38,890 --> 00:19:48,170
+che mimano le loro potenzialità. Adesso bella mi è venuto questo lampo adesso poi dico in un
+
+128
+00:19:48,170 --> 00:19:57,990
+futuro che diventa semodulari anche sulla fornitura chilometro zero di quartiere. Io ti
+
+129
+00:19:57,990 --> 00:20:05,309
+ho messo questa parte perché l'ho tagliata a un certo punto. No perché l'auto diventa faccio
+
+130
+00:20:05,309 --> 00:20:13,279
+tutto. No ma sai che io a un certo punto avevo previsto anche il baratto, magari una felpa che
+
+131
+00:20:13,279 --> 00:20:24,119
+io non metto più. Dicono dai chi mi dà la macchina gli do questa felpa in cambio. E' da
+
+132
+00:20:24,119 --> 00:20:29,960
+brainstorming, alla fine è quello che stiamo facendo comunque in fase iniziale bisogna farlo.
+
+133
+00:20:29,960 --> 00:20:38,319
+Ma guarda come come dire Uber quando a un certo punto si è sommessi a non lo so a
+
+134
+00:20:38,480 --> 00:20:48,000
+consegnare le pizze a far volare i droni e tutto quanto è perché quando ormai hanno budget infinito
+
+135
+00:20:48,000 --> 00:20:55,279
+ci pompano dentro mille funzionalità o mille cose in più quindi in una fase iniziale. E poi il mercato
+
+136
+00:20:55,279 --> 00:21:02,319
+accoglie, può andare bene ma può andare male. Esatto e uno la metto la toglie non si accorge
+
+137
+00:21:02,319 --> 00:21:09,079
+nessuno perché tanto nessuno dirà. Sì magari lo diceva che cagata che ha messo però non la
+
+138
+00:21:09,079 --> 00:21:16,700
+guardi e dopo un po' sparisce da sola. Quindi si potrà anche provare in futuro di mettere anche
+
+139
+00:21:16,700 --> 00:21:27,140
+la funzionalità baratto. Ma fondamentalmente un quartiere potrebbe sopravvivere con il mutuo
+
+140
+00:21:27,140 --> 00:21:38,099
+scaglio se ci pensi. Questa cosa della microeconomia parallela è secondo me un'immaginazione da
+
+141
+00:21:38,099 --> 00:21:48,180
+spingere. Ma non solo, te la butto lì ancora più visionaria, se l'intelligenza artificiale riuscisse
+
+142
+00:21:48,180 --> 00:22:00,160
+anche a, una volta in cui si dà ai negozi, ma negozi e botteglie, la possibilità di condividere
+
+143
+00:22:00,160 --> 00:22:09,859
+le loro liste della spesa con i fornitori, potrebbe creare gruppi d'acquisto. Quindi in una città
+
+144
+00:22:09,859 --> 00:22:22,099
+come Milano i 50 lattai potrebbero comprare come un'unica società con i prezzi a sconto della
+
+145
+00:22:22,099 --> 00:22:32,900
+grossa distribuzione. Allora lì veramente la metti nel culo a tutti. Da quant'è che ci pensi?
+
+146
+00:22:32,900 --> 00:22:41,099
+L'ho visto, non me lo ricordo, me l'avevi già detto, ma non me lo ricordo. Forse sì, l'avevo già...
+
+147
+00:22:41,099 --> 00:22:54,259
+Mi ha preso il mato, è un po'. Non un anno ma qualche mese, un po' di mesi mi sembra, vero? Ci sta. Da quanto
+
+148
+00:22:54,259 --> 00:23:11,180
+che ci pensi tu a How We Do? Che ci penso come Bozza. Come idea, come idea, la prima volta che l'ho detto,
+
+149
+00:23:11,180 --> 00:23:28,369
+senti che idea mi è venuta, proprio così dal principio? Come Bozza un po' di mesi fa. Immagino
+
+150
+00:23:28,369 --> 00:23:45,779
+allora le notti insonni, soprattutto quando pensi poi di realizzarla e vuoi farlo e ti accorgi dei muri che ci sono, veramente inizia a interpensare.
+
+151
+00:23:45,779 --> 00:23:59,920
+Sì, più che altro... Allora è un bel esercizio perché poi pensi come semplificare le cose al punto di rendere fattibili, quindi continui a
+
+152
+00:23:59,920 --> 00:24:15,630
+stremare. L'idea la espandi e dopo la ricomprivi. Però se ci pensi la parte di centralizzazione degli acquisti per l'intelligenza
+
+153
+00:24:15,630 --> 00:24:30,500
+artificiale, cosa sarebbe? Calata. E però per gli utenti che l'hanno raggiunto, no? E' un blast della Madonna.
+
+154
+00:24:30,500 --> 00:24:44,759
+E non mi sembra, guarda, dicevano 1400 attività commerciali all'anno, spariscono in Italia. Quindi perché? Perché non riescono a fare i conti con la grande distribuzione.
+
+155
+00:24:44,759 --> 00:25:17,349
+Così se uno gli comincia a dire, guarda che se compri tramite A, puoi risparmiare X. Come poi nelle zone periferiche o nei paesini, alla fine un'applicazione così
+
+156
+00:25:17,349 --> 00:25:45,980
+funziona come Uber, come Glovo, come tutti questi perché di quelle queste realtà non arrivano. Cioè tu pensa nel paesino, non lo so, in Sardegna, Uber non andrà mai o forse sì tra X anni, però ci sono macchine e magari gente che non ha niente da fare e si fanno il loro Uber interno.
+
+157
+00:25:45,980 --> 00:26:17,180
+Certo, dai. Mauro direi, posso chiamarti Mauro? Sì, come no? Ma dai, direi che Top, poi ci vediamo anche prossimamente live sicuramente, prima di Natale. Quello sicuro. Che c'è anche il tuo armadio da sistemare nel tuo fin di anno, quello te lo promesso e va sistemato l'armadio.
+
+158
+00:26:17,180 --> 00:26:38,910
+Ok, va bene, va bene. Dai, ti giro io dopo mezzanotto il documento che ho due o tre cose da fare prima della mezza proprio di corsa e poi vi dico a cui. Va bene. Lavoro sulla trascrizione e aggiornamento del Doc e te lo giro in Whatsapp.
+
+159
+00:26:38,910 --> 00:27:03,140
+Va bene, io domani faccio la verifica su come poter quadrare questa uscita subito e poi già domani in serata se sei tranquillo ti chiamo e teniamo le somme. Assolutamente, perfetto.
+
+160
+00:27:03,140 --> 00:27:14,140
+Va bene, va bene. Grazie mille Francesco, una buona serata. Ciao Maurizio. Ciao. Ciao.
+
