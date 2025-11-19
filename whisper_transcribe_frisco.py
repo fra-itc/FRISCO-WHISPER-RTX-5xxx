@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 import argparse
+import re
 
 # Colori per terminale
 class Colors:
@@ -30,7 +31,8 @@ def check_dependencies():
     dependencies = {
         'faster-whisper': 'faster-whisper',
         'torch': 'torch',
-        'ffmpeg-python': 'ffmpeg-python'
+        'ffmpeg-python': 'ffmpeg-python',
+        'tqdm': 'tqdm'
     }
     
     missing = []
@@ -155,24 +157,57 @@ def test_gpu():
 
 def convert_to_wav(input_file, output_dir):
     """Converte audio in WAV 16kHz mono"""
+    from tqdm import tqdm
+
     print_colored("\n[1/3] Conversione in WAV...", Colors.CYAN)
-    
+
     input_path = Path(input_file)
     output_path = Path(output_dir) / f"{input_path.stem}.wav"
-    
+
+    # Prima otteniamo la durata del file audio
+    duration_cmd = [
+        'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1', str(input_path)
+    ]
+
+    try:
+        duration_result = subprocess.run(duration_cmd, capture_output=True, text=True)
+        duration = float(duration_result.stdout.strip())
+    except:
+        duration = None
+
     cmd = [
         'ffmpeg', '-i', str(input_path),
         '-ar', '16000', '-ac', '1',
         '-c:a', 'pcm_s16le',
+        '-progress', 'pipe:1',
         str(output_path), '-y'
     ]
-    
-    result = subprocess.run(cmd, capture_output=True)
-    
-    if result.returncode != 0:
-        print_colored(f"[ERROR] Conversione fallita: {result.stderr.decode()}", Colors.RED)
+
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               universal_newlines=True, bufsize=1)
+
+    pbar = None
+    if duration:
+        pbar = tqdm(total=int(duration * 1000000), unit='us', desc='Conversione',
+                   bar_format='{desc}: {percentage:3.0f}%|{bar}| {elapsed}<{remaining}')
+
+    for line in process.stdout:
+        if pbar and line.startswith('out_time_us='):
+            time_us = int(line.split('=')[1].strip())
+            pbar.n = min(time_us, pbar.total)
+            pbar.refresh()
+
+    process.wait()
+
+    if pbar:
+        pbar.close()
+
+    if process.returncode != 0:
+        stderr = process.stderr.read()
+        print_colored(f"[ERROR] Conversione fallita: {stderr}", Colors.RED)
         return None
-    
+
     print_colored(f"[OK] WAV creato: {output_path}", Colors.GREEN)
     return output_path
 
@@ -234,19 +269,25 @@ def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
                 transcribe_params['language'] = language
             
             segments, info = model.transcribe(**transcribe_params)
-            
+
             print_colored(f"[OK] Lingua rilevata: {info.language} (probabilità: {info.language_probability:.2%})", Colors.GREEN)
-            
-            # Salva SRT
+
+            # Salva SRT con progress bar
+            from tqdm import tqdm
             output_path = Path(output_dir) / f"{Path(wav_path).stem}.srt"
-            
+
+            print_colored("[INFO] Elaborazione segmenti...", Colors.CYAN)
+
             with open(output_path, 'w', encoding='utf-8') as f:
-                for i, segment in enumerate(segments, 1):
+                # Convertiamo il generatore in lista per mostrare il progresso
+                segments_list = list(tqdm(segments, desc='Trascrizione', unit='seg'))
+
+                for i, segment in enumerate(segments_list, 1):
                     f.write(f"{i}\n")
                     f.write(f"{format_timestamp(segment.start)} --> {format_timestamp(segment.end)}\n")
                     f.write(f"{segment.text.strip()}\n\n")
-            
-            print_colored(f"[OK] Trascrizione completata!", Colors.GREEN)
+
+            print_colored(f"[OK] Trascrizione completata! ({len(segments_list)} segmenti)", Colors.GREEN)
             print_colored(f"[OK] File salvato: {output_path}", Colors.GREEN)
             
             return output_path
