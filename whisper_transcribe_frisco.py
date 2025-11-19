@@ -20,6 +20,18 @@ class Colors:
     RED = '\033[91m'
     RESET = '\033[0m'
     BOLD = '\033[1m'
+    WHITE = '\033[97m'
+    BRIGHT_GREEN = '\033[92m\033[1m'  # Matrix style!
+
+# Modello corrente (globale)
+CURRENT_MODEL = 'large-v3'
+
+# Modelli disponibili
+AVAILABLE_MODELS = [
+    {'name': 'small', 'desc': 'Veloce, meno accurato (~460 MB)'},
+    {'name': 'medium', 'desc': 'Bilanciato (~1.5 GB)'},
+    {'name': 'large-v3', 'desc': 'Massima qualità (~3 GB) [CONSIGLIATO]'}
+]
 
 def print_colored(message, color=Colors.RESET):
     print(f"{color}{message}{Colors.RESET}")
@@ -211,13 +223,32 @@ def convert_to_wav(input_file, output_dir):
     print_colored(f"[OK] WAV creato: {output_path}", Colors.GREEN)
     return output_path
 
-def transcribe_audio(wav_path, output_dir, task='transcribe', language=None, 
+def get_audio_duration(audio_file):
+    """Ottiene la durata dell'audio in secondi"""
+    try:
+        cmd = [
+            'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_file)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return float(result.stdout.strip())
+    except:
+        return None
+
+def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
                      model_size='medium', compute_type='float16', beam_size=5):
     """Trascrizione con Faster-Whisper"""
     print_colored("\n[2/3] Trascrizione...", Colors.CYAN)
     lang_display = language if language else "auto-detect"
     print_colored(f"Modello: {model_size} | Compute: {compute_type} | Lingua: {lang_display}", Colors.CYAN)
     print_colored(f"Beam: {beam_size}", Colors.CYAN)
+
+    # Ottieni durata audio per calcolare ETA
+    audio_duration = get_audio_duration(wav_path)
+    if audio_duration:
+        minutes = int(audio_duration // 60)
+        seconds = int(audio_duration % 60)
+        print_colored(f"Durata audio: {minutes}m {seconds}s", Colors.CYAN)
     
     from faster_whisper import WhisperModel
     
@@ -272,21 +303,71 @@ def transcribe_audio(wav_path, output_dir, task='transcribe', language=None,
 
             print_colored(f"[OK] Lingua rilevata: {info.language} (probabilità: {info.language_probability:.2%})", Colors.GREEN)
 
-            # Salva SRT con progress bar
-            from tqdm import tqdm
+            # Salva SRT con visualizzazione in tempo reale stile Matrix
+            import time
             output_path = Path(output_dir) / f"{Path(wav_path).stem}.srt"
 
-            print_colored("[INFO] Elaborazione segmenti...", Colors.CYAN)
+            print_colored("\n" + "="*70, Colors.CYAN)
+            print_colored("  TRASCRIZIONE IN TEMPO REALE - MATRIX MODE", Colors.BRIGHT_GREEN)
+            print_colored("="*70, Colors.CYAN)
+            print()
+
+            segments_list = []
+            start_time = time.time()
 
             with open(output_path, 'w', encoding='utf-8') as f:
-                # Convertiamo il generatore in lista per mostrare il progresso
-                segments_list = list(tqdm(segments, desc='Trascrizione', unit='seg'))
+                segment_count = 0
 
-                for i, segment in enumerate(segments_list, 1):
-                    f.write(f"{i}\n")
+                for segment in segments:
+                    segment_count += 1
+                    segments_list.append(segment)
+
+                    # Scrivi nel file SRT
+                    f.write(f"{segment_count}\n")
                     f.write(f"{format_timestamp(segment.start)} --> {format_timestamp(segment.end)}\n")
                     f.write(f"{segment.text.strip()}\n\n")
+                    f.flush()  # Forza scrittura immediata
 
+                    # Visualizzazione Matrix-style in tempo reale
+                    timestamp_str = f"[{format_timestamp(segment.start).split(',')[0]}]"
+                    print(f"{Colors.YELLOW}{timestamp_str}{Colors.RESET} ", end='', flush=True)
+
+                    # Stampa il testo carattere per carattere (effetto Matrix)
+                    text = segment.text.strip()
+                    for char in text:
+                        print(f"{Colors.BRIGHT_GREEN}{char}{Colors.RESET}", end='', flush=True)
+                        time.sleep(0.01)  # Piccolo delay per effetto "digitazione"
+
+                    print()  # Newline dopo ogni segmento
+
+                    # Calcola e mostra ETA ogni 5 segmenti
+                    if segment_count % 5 == 0:
+                        elapsed_time = time.time() - start_time
+                        audio_processed = segment.end  # Tempo audio processato in secondi
+
+                        if audio_duration and audio_processed > 0:
+                            # Calcola velocità di processamento
+                            processing_speed = audio_processed / elapsed_time  # audio_sec / real_sec
+                            remaining_audio = audio_duration - audio_processed
+                            eta_seconds = remaining_audio / processing_speed if processing_speed > 0 else 0
+
+                            # Formatta ETA
+                            eta_min = int(eta_seconds // 60)
+                            eta_sec = int(eta_seconds % 60)
+                            progress_pct = (audio_processed / audio_duration) * 100
+
+                            print_colored(
+                                f"  [{segment_count} seg] "
+                                f"Progresso: {progress_pct:.1f}% | "
+                                f"Velocità: {processing_speed:.1f}x | "
+                                f"ETA: {eta_min}m {eta_sec}s",
+                                Colors.CYAN
+                            )
+                        else:
+                            print_colored(f"  [{segment_count} segmenti processati...]", Colors.CYAN)
+
+            print()
+            print_colored("="*70, Colors.CYAN)
             print_colored(f"[OK] Trascrizione completata! ({len(segments_list)} segmenti)", Colors.GREEN)
             print_colored(f"[OK] File salvato: {output_path}", Colors.GREEN)
             
@@ -309,6 +390,42 @@ def format_timestamp(seconds):
     millis = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
+def select_model():
+    """Menu selezione modello Whisper"""
+    global CURRENT_MODEL
+
+    print_colored("\n" + "="*70, Colors.CYAN)
+    print_colored("  SELEZIONE MODELLO WHISPER", Colors.CYAN)
+    print_colored("="*70, Colors.CYAN)
+    print()
+
+    for i, model in enumerate(AVAILABLE_MODELS, 1):
+        color = Colors.BRIGHT_GREEN if model['name'] == CURRENT_MODEL else Colors.WHITE
+        marker = " ◄ ATTUALE" if model['name'] == CURRENT_MODEL else ""
+        print_colored(f"  [{i}] {model['name']:12} - {model['desc']}{marker}", color)
+
+    print()
+    print_colored("="*70, Colors.CYAN)
+
+    choice = input("\nScegli modello [1-3] o INVIO per confermare attuale: ").strip()
+
+    if not choice:
+        print_colored(f"\n[INFO] Confermato modello: {CURRENT_MODEL}", Colors.GREEN)
+        input("\nPremi INVIO per continuare...")
+        return
+
+    try:
+        idx = int(choice) - 1
+        if 0 <= idx < len(AVAILABLE_MODELS):
+            CURRENT_MODEL = AVAILABLE_MODELS[idx]['name']
+            print_colored(f"\n[OK] Modello cambiato in: {CURRENT_MODEL}", Colors.GREEN)
+        else:
+            print_colored("\n[ERROR] Scelta non valida!", Colors.RED)
+    except ValueError:
+        print_colored("\n[ERROR] Inserisci un numero valido!", Colors.RED)
+
+    input("\nPremi INVIO per continuare...")
+
 def interactive_menu():
     """Menu interattivo"""
     # Setup
@@ -325,23 +442,25 @@ def interactive_menu():
     
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        
+
         print_colored("═" * 70, Colors.CYAN)
         print_colored("  FRISCO WHISPER RTX 5080 [RULEZ] - Python Edition", Colors.GREEN)
         print_colored("═" * 70, Colors.CYAN)
         print()
         print_colored("GPU: NVIDIA RTX 5080 16GB", Colors.GREEN)
         print_colored(f"Compute consigliato: {best_compute or 'CPU'}", Colors.YELLOW)
+        print_colored(f"Modello attuale: {CURRENT_MODEL}", Colors.BRIGHT_GREEN)
         print()
-        print_colored("="*50, Colors.CYAN)
+        print_colored("="*70, Colors.CYAN)
         print("[1] Trascrivi audio (mantiene lingua)")
         print("[2] Traduci in italiano")
         print("[3] Batch processing")
         print("[4] Test GPU")
+        print("[5] Scegli modello (default: large-v3)")
         print("[0] Esci")
         print()
-        
-        choice = input("Scelta [0-4]: ")
+
+        choice = input("Scelta [0-5]: ")
         
         if choice == '0':
             print_colored("\nArrivederci!", Colors.CYAN)
@@ -368,6 +487,9 @@ def interactive_menu():
         elif choice == '4':
             best_compute = test_gpu()
             input("\nPremi INVIO per continuare...")
+
+        elif choice == '5':
+            select_model()
 
 def process_files(input_dir, output_dir, task, language, compute_type):
     """Processa singolo file"""
@@ -423,9 +545,10 @@ def process_files(input_dir, output_dir, task, language, compute_type):
         return
     
     result = transcribe_audio(
-        wav_path, output_dir, 
-        task=task, 
+        wav_path, output_dir,
+        task=task,
         language=language,
+        model_size=CURRENT_MODEL,
         compute_type=compute_type or 'float32'
     )
     
@@ -498,6 +621,7 @@ def batch_process(input_dir, output_dir, task, language, compute_type):
             wav_path, output_dir,
             task=task,
             language=language,
+            model_size=CURRENT_MODEL,
             compute_type=compute_type or 'float32'
         )
         
