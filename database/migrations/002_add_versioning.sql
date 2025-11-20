@@ -9,20 +9,35 @@
 PRAGMA foreign_keys = ON;
 
 -- ============================================================================
--- FIX: Recreate FTS trigger to work with versioning
--- The existing transcriptions_fts_update trigger has issues when combined
--- with versioning triggers. Since transcriptions_fts uses content=transcriptions,
--- we should use FTS5's delete/insert commands properly.
+-- FIX: Recreate FTS triggers to work with versioning
+-- The existing FTS triggers have issues. We need to use proper FTS5 commands.
 -- ============================================================================
+DROP TRIGGER IF EXISTS transcriptions_fts_insert;
 DROP TRIGGER IF EXISTS transcriptions_fts_update;
+DROP TRIGGER IF EXISTS transcriptions_fts_delete;
 
+-- Proper FTS5 insert trigger
+CREATE TRIGGER transcriptions_fts_insert AFTER INSERT ON transcriptions
+BEGIN
+    INSERT INTO transcriptions_fts(rowid, transcription_id, text, language)
+    VALUES (NEW.id, NEW.id, NEW.text, NEW.language);
+END;
+
+-- Proper FTS5 update trigger
 CREATE TRIGGER transcriptions_fts_update AFTER UPDATE ON transcriptions
 BEGIN
     INSERT INTO transcriptions_fts(transcriptions_fts, rowid, transcription_id, text, language)
     VALUES('delete', OLD.id, OLD.id, OLD.text, OLD.language);
 
-    INSERT INTO transcriptions_fts(transcription_id, text, language, rowid)
-    VALUES (NEW.id, NEW.text, NEW.language, NEW.id);
+    INSERT INTO transcriptions_fts(rowid, transcription_id, text, language)
+    VALUES (NEW.id, NEW.id, NEW.text, NEW.language);
+END;
+
+-- Proper FTS5 delete trigger
+CREATE TRIGGER transcriptions_fts_delete AFTER DELETE ON transcriptions
+BEGIN
+    INSERT INTO transcriptions_fts(transcriptions_fts, rowid, transcription_id, text, language)
+    VALUES('delete', OLD.id, OLD.id, OLD.text, OLD.language);
 END;
 
 -- ============================================================================

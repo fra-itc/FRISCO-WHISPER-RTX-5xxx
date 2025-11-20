@@ -364,8 +364,11 @@ class FileManager:
                             f"Hash verification failed: {file_hash} != {verify_hash}"
                         )
 
-                # Add to database
-                file_id, is_new = self.db.add_or_get_file(str(storage_path.absolute()))
+                # Add to database (pass original_name to preserve it)
+                file_id, is_new = self.db.add_or_get_file(
+                    str(storage_path.absolute()),
+                    original_name=original_name
+                )
 
                 if is_new:
                     logger.info(

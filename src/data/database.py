@@ -132,18 +132,32 @@ class DatabaseManager:
             raise
 
     def init_db(self):
-        """Initialize database schema from migration file."""
-        migration_file = Path(__file__).parent.parent.parent / 'database' / 'migrations' / '001_initial_schema.sql'
+        """Initialize database schema from migration files."""
+        migrations_dir = Path(__file__).parent.parent.parent / 'database' / 'migrations'
 
-        if not migration_file.exists():
-            raise DatabaseError(f"Migration file not found: {migration_file}")
+        # Apply migrations in order
+        migration_files = [
+            '001_initial_schema.sql',
+            '002_add_versioning.sql',
+            '003_fix_views.sql',
+            '004_fix_fts_triggers.sql'
+        ]
 
         try:
-            with open(migration_file, 'r', encoding='utf-8') as f:
-                schema_sql = f.read()
+            for migration_file_name in migration_files:
+                migration_file = migrations_dir / migration_file_name
 
-            with self.transaction():
-                self.connection.executescript(schema_sql)
+                if not migration_file.exists():
+                    logger.warning(f"Migration file not found: {migration_file_name}")
+                    continue
+
+                with open(migration_file, 'r', encoding='utf-8') as f:
+                    schema_sql = f.read()
+
+                with self.transaction():
+                    self.connection.executescript(schema_sql)
+
+                logger.info(f"Applied migration: {migration_file_name}")
 
             logger.info("Database schema initialized successfully")
 
@@ -176,12 +190,13 @@ class DatabaseManager:
             logger.error(f"Failed to calculate file hash: {e}")
             raise DatabaseError(f"Cannot calculate file hash: {e}")
 
-    def add_or_get_file(self, file_path: str) -> Tuple[int, bool]:
+    def add_or_get_file(self, file_path: str, original_name: Optional[str] = None) -> Tuple[int, bool]:
         """
         Add file to database or get existing file ID if duplicate exists.
 
         Args:
-            file_path: Path to audio file
+            file_path: Path to audio file (may be storage path with hash-based name)
+            original_name: Optional original filename (use if file_path is storage path)
 
         Returns:
             Tuple of (file_id, is_new) where is_new indicates if file was newly added
@@ -196,6 +211,9 @@ class DatabaseManager:
         file_size = path.stat().st_size
         file_format = path.suffix.lstrip('.').lower()
 
+        # Use provided original_name or fallback to path.name
+        stored_name = original_name if original_name else path.name
+
         # Check if file already exists
         cursor = self.connection.execute(
             "SELECT id FROM files WHERE file_hash = ?",
@@ -204,7 +222,7 @@ class DatabaseManager:
         existing = cursor.fetchone()
 
         if existing:
-            logger.info(f"Duplicate file detected: {path.name} (hash: {file_hash[:8]}...)")
+            logger.info(f"Duplicate file detected: {stored_name} (hash: {file_hash[:8]}...)")
             return existing['id'], False
 
         # Add new file
@@ -215,11 +233,11 @@ class DatabaseManager:
                     INSERT INTO files (file_hash, original_name, file_path, size_bytes, format)
                     VALUES (?, ?, ?, ?, ?)
                     """,
-                    (file_hash, path.name, str(path.absolute()), file_size, file_format)
+                    (file_hash, stored_name, str(path.absolute()), file_size, file_format)
                 )
                 file_id = cursor.lastrowid
 
-            logger.info(f"File added to database: {path.name} (ID: {file_id})")
+            logger.info(f"File added to database: {stored_name} (ID: {file_id})")
             return file_id, True
 
         except sqlite3.IntegrityError as e:
@@ -497,28 +515,47 @@ class DatabaseManager:
         Returns:
             List of matching transcription dictionaries with highlights
         """
-        if language:
-            sql = """
-                SELECT t.*, snippet(transcriptions_fts, 1, '<mark>', '</mark>', '...', 64) AS snippet
-                FROM transcriptions t
-                JOIN transcriptions_fts fts ON t.id = fts.transcription_id
-                WHERE transcriptions_fts MATCH ? AND t.language = ?
-                ORDER BY rank
-                LIMIT ?
-            """
-            params = (query, language, limit)
-        else:
-            sql = """
-                SELECT t.*, snippet(transcriptions_fts, 1, '<mark>', '</mark>', '...', 64) AS snippet
-                FROM transcriptions t
-                JOIN transcriptions_fts fts ON t.id = fts.transcription_id
-                WHERE transcriptions_fts MATCH ?
-                ORDER BY rank
-                LIMIT ?
-            """
-            params = (query, limit)
+        try:
+            if language:
+                sql = """
+                    SELECT t.*, snippet(transcriptions_fts, 1, '<mark>', '</mark>', '...', 64) AS snippet
+                    FROM transcriptions_fts
+                    JOIN transcriptions t ON transcriptions_fts.rowid = t.id
+                    WHERE transcriptions_fts MATCH ? AND t.language = ?
+                    ORDER BY transcriptions_fts.rank
+                    LIMIT ?
+                """
+                params = (query, language, limit)
+            else:
+                sql = """
+                    SELECT t.*, snippet(transcriptions_fts, 1, '<mark>', '</mark>', '...', 64) AS snippet
+                    FROM transcriptions_fts
+                    JOIN transcriptions t ON transcriptions_fts.rowid = t.id
+                    WHERE transcriptions_fts MATCH ?
+                    ORDER BY transcriptions_fts.rank
+                    LIMIT ?
+                """
+                params = (query, limit)
 
-        cursor = self.connection.execute(sql, params)
+            cursor = self.connection.execute(sql, params)
+        except Exception as e:
+            logger.error(f"Search query failed: {e}")
+            # Fallback to simple LIKE search
+            if language:
+                sql = """
+                    SELECT * FROM transcriptions t
+                    WHERE t.text LIKE ? AND t.language = ?
+                    LIMIT ?
+                """
+                params = (f'%{query}%', language, limit)
+            else:
+                sql = """
+                    SELECT * FROM transcriptions t
+                    WHERE t.text LIKE ?
+                    LIMIT ?
+                """
+                params = (f'%{query}%', limit)
+            cursor = self.connection.execute(sql, params)
 
         results = []
         for row in cursor.fetchall():
@@ -547,6 +584,13 @@ class DatabaseManager:
         )
         file_stats = dict(cursor.fetchone())
         stats.update(file_stats)
+
+        # Add transcript statistics
+        cursor = self.connection.execute(
+            "SELECT COUNT(*) as total_transcripts FROM transcriptions"
+        )
+        transcript_stats = dict(cursor.fetchone())
+        stats.update(transcript_stats)
 
         return stats
 

@@ -71,10 +71,6 @@ class TranscriptManager:
         """Apply versioning schema migration if not already applied."""
         migration_file = Path(__file__).parent.parent.parent / 'database' / 'migrations' / '002_add_versioning.sql'
 
-        if not migration_file.exists():
-            logger.warning(f"Versioning migration file not found: {migration_file}")
-            return
-
         try:
             # Check if transcript_versions table exists
             cursor = self.db.connection.execute(
@@ -89,21 +85,35 @@ class TranscriptManager:
                 logger.debug("Versioning migration already applied")
                 return
 
+            if not migration_file.exists():
+                logger.error(f"Versioning migration file not found: {migration_file}")
+                raise TranscriptError(f"Versioning migration file required but not found: {migration_file}")
+
             # Apply migration
             logger.info("Applying versioning migration...")
             with open(migration_file, 'r', encoding='utf-8') as f:
                 migration_sql = f.read()
 
-            with self.db.transaction():
+            # Apply migration directly (executescript manages its own transactions)
+            try:
                 self.db.connection.executescript(migration_sql)
+                # Ensure migration is committed
+                if self.db.connection.in_transaction:
+                    self.db.connection.commit()
+                logger.info("Versioning migration applied successfully")
+            except Exception as migration_error:
+                logger.error(f"Migration execution failed: {migration_error}")
+                if self.db.connection.in_transaction:
+                    self.db.connection.rollback()
+                raise migration_error
 
-            logger.info("Versioning migration applied successfully")
-
+        except TranscriptError:
+            raise
         except Exception as e:
             logger.error(f"Failed to apply versioning migration: {e}")
             import traceback
             traceback.print_exc()
-            # Don't raise - allow manager to work with basic schema
+            raise TranscriptError(f"Failed to apply versioning migration: {e}")
 
     def save_transcript(
         self,
@@ -276,7 +286,8 @@ class TranscriptManager:
                         v.segment_count,
                         v.created_at AS version_created_at,
                         v.created_by,
-                        v.change_note
+                        v.change_note,
+                        v.is_current
                     FROM transcriptions t
                     INNER JOIN transcript_versions v
                         ON t.id = v.transcription_id AND v.is_current = 1
@@ -301,7 +312,8 @@ class TranscriptManager:
                         v.segment_count,
                         v.created_at AS version_created_at,
                         v.created_by,
-                        v.change_note
+                        v.change_note,
+                        v.is_current
                     FROM transcriptions t
                     INNER JOIN transcript_versions v ON t.id = v.transcription_id
                     WHERE t.id = ? AND v.version_number = ?

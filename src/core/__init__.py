@@ -67,6 +67,11 @@ from .audio_processor import (
     validate_audio_file
 )
 
+from .transcription_service import (
+    TranscriptionService,
+    TranscriptionServiceError
+)
+
 __version__ = '2.0.0'
 __author__ = 'Frisco'
 __all__ = [
@@ -91,5 +96,8 @@ __all__ = [
     'ConversionResult',
     'convert_audio_file',
     'get_audio_info',
-    'validate_audio_file'
+    'validate_audio_file',
+    # Integrated Service
+    'TranscriptionService',
+    'TranscriptionServiceError'
 ]

@@ -391,7 +391,7 @@ class TestFullStackWorkflow:
 
         # Text diff
         text_diff = comparison['text_diff']
-        assert text_diff['old_word_count'] == 14  # Original word count
+        assert text_diff['old_word_count'] == 17  # Original word count (3 segments: 5+5+7 words)
         assert text_diff['new_word_count'] > text_diff['old_word_count']  # Added words
         assert text_diff['word_diff'] > 0  # Positive diff
 

@@ -27,7 +27,11 @@ import uvicorn
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.core.transcription import TranscriptionEngine, AudioConverter, GPUInfo
+from src.core.transcription_service import TranscriptionService
 from src.data.database import DatabaseManager
+from src.data.transcript_manager import TranscriptManager
+from src.data.file_manager import FileManager
+from src.data.format_converters import FormatConverter
 
 # Configure logging
 logging.basicConfig(
@@ -38,7 +42,9 @@ logger = logging.getLogger(__name__)
 
 # Global instances
 db_manager: Optional[DatabaseManager] = None
-transcription_engine: Optional[TranscriptionEngine] = None
+transcription_service: Optional[TranscriptionService] = None
+transcript_manager: Optional[TranscriptManager] = None
+file_manager: Optional[FileManager] = None
 active_websockets: Dict[str, List[WebSocket]] = {}
 
 # Configuration
@@ -102,7 +108,7 @@ class JobStatistics(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown"""
-    global db_manager, transcription_engine
+    global db_manager, transcription_service, transcript_manager, file_manager
 
     # Startup
     logger.info("Starting Frisco Whisper RTX Web Server...")
@@ -111,25 +117,27 @@ async def lifespan(app: FastAPI):
     db_manager = DatabaseManager('database/transcription.db')
     logger.info("Database initialized")
 
-    # Initialize transcription engine (with GPU detection)
-    transcription_engine = TranscriptionEngine(model_size='large-v3')
-    logger.info(f"Transcription engine initialized: {transcription_engine}")
+    # Initialize transcription service (integrates all components)
+    transcription_service = TranscriptionService(
+        db_path='database/transcription.db',
+        model_size='large-v3'
+    )
+    logger.info(f"Transcription service initialized")
 
-    # Log GPU info
-    gpu_info = transcription_engine.get_gpu_info()
-    if gpu_info and gpu_info.available:
-        logger.info(f"GPU detected: {gpu_info.device_name} ({gpu_info.vram_gb:.1f} GB VRAM)")
-        logger.info(f"CUDA version: {gpu_info.cuda_version}")
-        logger.info(f"Recommended compute type: {gpu_info.recommended_compute_type}")
-    else:
-        logger.warning("No GPU detected, using CPU mode")
+    # Initialize managers for direct access
+    transcript_manager = TranscriptManager(db_manager)
+    file_manager = FileManager(db_manager)
+    logger.info("Managers initialized")
+
+    # Log that we're ready (GPU info available via API)
+    logger.info("Server ready - GPU info available via /api/v1/system/status")
 
     yield
 
     # Shutdown
     logger.info("Shutting down...")
-    if transcription_engine:
-        transcription_engine.cleanup()
+    if transcription_service:
+        transcription_service.close()
     if db_manager:
         db_manager.close()
     logger.info("Shutdown complete")
@@ -399,7 +407,14 @@ async def get_models():
 @app.get("/api/v1/system/status", response_model=SystemStatusResponse)
 async def get_system_status():
     """Get system health and GPU status"""
-    gpu_info = transcription_engine.get_gpu_info()
+    try:
+        # Use a temporary engine to check GPU without loading model
+        temp_engine = TranscriptionEngine(model_size='large-v3')
+        gpu_info = temp_engine.get_gpu_info()
+        temp_engine.cleanup()
+    except Exception as e:
+        logger.warning(f"Could not get GPU info: {e}")
+        gpu_info = None
 
     return SystemStatusResponse(
         gpu_available=gpu_info.available if gpu_info else False,
@@ -422,6 +437,114 @@ async def get_statistics():
         return JobStatistics(**stats)
     except Exception as e:
         logger.error(f"Failed to get statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# API Endpoints - Transcript Export
+# ============================================================================
+
+@app.get("/api/v1/transcripts/{transcript_id}")
+async def get_transcript(transcript_id: int, version: Optional[int] = None):
+    """
+    Get transcript with segments.
+
+    Args:
+        transcript_id: Transcript database ID
+        version: Optional version number
+    """
+    try:
+        transcript = transcript_manager.get_transcript(transcript_id, version)
+        return transcript
+    except Exception as e:
+        logger.error(f"Failed to get transcript: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.get("/api/v1/transcripts/{transcript_id}/versions")
+async def get_transcript_versions(transcript_id: int):
+    """Get all versions for a transcript"""
+    try:
+        versions = transcript_manager.get_versions(transcript_id)
+        return {"transcript_id": transcript_id, "versions": versions}
+    except Exception as e:
+        logger.error(f"Failed to get transcript versions: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/v1/transcripts/{transcript_id}/export")
+async def export_transcript(
+    transcript_id: int,
+    format_name: str = Query(..., pattern='^(srt|vtt|json|txt|csv)$'),
+    version: Optional[int] = None
+):
+    """
+    Export transcript to specified format.
+
+    Args:
+        transcript_id: Transcript database ID
+        format_name: Output format (srt, vtt, json, txt, csv)
+        version: Optional version number
+
+    Returns:
+        File download response
+    """
+    try:
+        # Get transcript to determine filename
+        transcript = transcript_manager.get_transcript(transcript_id, version)
+        job = db_manager.get_job(transcript['job_id'])
+
+        base_name = Path(job['file_path']).stem if job else f"transcript_{transcript_id}"
+        output_filename = f"{base_name}_v{transcript['version_number']}.{format_name}"
+
+        # Export to temporary file
+        temp_dir = Path("temp_exports")
+        temp_dir.mkdir(exist_ok=True)
+        output_path = temp_dir / output_filename
+
+        # Generate export content
+        content = transcript_manager.export_transcript(
+            transcript_id=transcript_id,
+            format_name=format_name,
+            output_path=str(output_path),
+            version=version
+        )
+
+        # Determine media type
+        media_types = {
+            'srt': 'text/plain',
+            'vtt': 'text/vtt',
+            'json': 'application/json',
+            'txt': 'text/plain',
+            'csv': 'text/csv'
+        }
+
+        media_type = media_types.get(format_name, 'text/plain')
+
+        return FileResponse(
+            path=str(output_path),
+            media_type=media_type,
+            filename=output_filename,
+            headers={"Content-Disposition": f"attachment; filename={output_filename}"}
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to export transcript: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/transcripts/job/{job_id}")
+async def get_transcript_by_job(job_id: str):
+    """Get transcript for a specific job"""
+    try:
+        transcript = transcript_manager.get_transcript_by_job(job_id)
+        if not transcript:
+            raise HTTPException(status_code=404, detail="Transcript not found for this job")
+        return transcript
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get transcript by job: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -506,7 +629,7 @@ async def process_transcription(
     vad_filter: bool
 ):
     """
-    Process transcription job in background.
+    Process transcription job in background using TranscriptionService.
     Updates job status and sends progress via WebSocket.
     """
     try:
@@ -523,96 +646,60 @@ async def process_transcription(
             "message": "Transcription started"
         })
 
-        # Create engine with specified model
-        engine = TranscriptionEngine(model_size=model_size)
-        engine.load_model()
-
-        # Convert audio to WAV if needed
-        input_path = Path(file_path)
-        if not AudioConverter.is_wav_compatible(file_path):
-            await broadcast_progress(job_id, {
-                "type": "progress",
-                "stage": "conversion",
-                "message": "Converting audio to WAV format..."
-            })
-
-            wav_path = AudioConverter.convert_to_wav(file_path, output_dir=str(UPLOAD_DIR))
-            if not wav_path:
-                raise Exception("Audio conversion failed")
-            input_path = wav_path
-
-        # Progress callback
+        # Progress callback that broadcasts to WebSocket
         def progress_callback(data: Dict[str, Any]):
-            asyncio.create_task(broadcast_progress(job_id, {
-                "type": "progress",
-                "stage": "transcription",
-                "segment_number": data['segment_number'],
-                "progress_pct": data['progress_pct'],
-                "text": data['text']
-            }))
+            stage = data.get('stage', 'transcription')
 
-        # Transcribe
-        result = engine.transcribe(
-            audio_path=str(input_path),
-            output_dir=str(TRANSCRIPTS_DIR),
+            if stage == 'conversion':
+                asyncio.create_task(broadcast_progress(job_id, {
+                    "type": "progress",
+                    "stage": "conversion",
+                    "progress_pct": data.get('progress_pct', 0),
+                    "message": data.get('message', 'Converting audio...')
+                }))
+            elif stage == 'transcription':
+                asyncio.create_task(broadcast_progress(job_id, {
+                    "type": "progress",
+                    "stage": "transcription",
+                    "segment_number": data.get('segment_number', 0),
+                    "progress_pct": data.get('progress_pct', 0),
+                    "text": data.get('text', '')
+                }))
+
+        # Use TranscriptionService for integrated workflow
+        result = transcription_service.transcribe_file(
+            file_path=file_path,
+            model_size=model_size,
             task=task_type,
             language=language,
             beam_size=beam_size,
             vad_filter=vad_filter,
-            progress_callback=progress_callback
+            output_dir=str(TRANSCRIPTS_DIR),
+            progress_callback=progress_callback,
+            skip_duplicate_check=True  # Already uploaded
         )
 
-        if result.success:
-            # Update job as completed
-            db_manager.update_job(
-                job_id=job_id,
-                status='completed',
-                detected_language=result.language,
-                language_probability=result.language_probability,
-                completed_at=datetime.now(),
-                processing_time_seconds=result.duration
-            )
-
-            # Save transcription result
-            with open(result.output_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-
-            db_manager.save_transcription(
-                job_id=job_id,
-                text=text,
-                language=result.language,
-                segments=[],  # Could parse SRT for segments
-                srt_path=str(result.output_path)
-            )
-
+        if result['success']:
             await broadcast_progress(job_id, {
                 "type": "status",
                 "status": "completed",
-                "message": f"Transcription completed: {result.segments_count} segments",
-                "srt_path": str(result.output_path)
+                "message": f"Transcription completed: {result['segments_count']} segments",
+                "transcript_id": result['transcript_id'],
+                "output_path": result['output_path']
             })
 
-            logger.info(f"Job completed: {job_id} ({result.segments_count} segments, {result.duration:.2f}s)")
-
-        else:
-            # Update job as failed
-            db_manager.update_job(
-                job_id=job_id,
-                status='failed',
-                error_message=result.error,
-                completed_at=datetime.now()
+            logger.info(
+                f"Job completed: {job_id} "
+                f"({result['segments_count']} segments, {result['processing_time_seconds']:.2f}s)"
             )
-
+        else:
             await broadcast_progress(job_id, {
                 "type": "status",
                 "status": "failed",
-                "error": result.error
+                "error": result.get('error', 'Unknown error')
             })
 
-            logger.error(f"Job failed: {job_id} - {result.error}")
-
-        # Cleanup
-        engine.cleanup()
+            logger.error(f"Job failed: {job_id}")
 
     except Exception as e:
         logger.error(f"Job processing error: {e}")

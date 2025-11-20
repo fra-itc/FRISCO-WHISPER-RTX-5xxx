@@ -186,6 +186,7 @@ VALUES ('created_at', datetime('now'));
 CREATE VIEW IF NOT EXISTS v_job_details AS
 SELECT
     j.job_id,
+    j.file_id,
     j.status,
     j.task_type,
     j.model_size,
