@@ -40,3 +40,22 @@ Thumbs.db
 logs/
 *.log
 *.wav
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+junit.xml
+
+# Test artifacts
+tests/fixtures/sample_audio.wav
+tests/fixtures/*.m4a
+tests/fixtures/*.mp3
+tests/fixtures/long_audio.wav
+tests/fixtures/real_speech.wav

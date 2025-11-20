@@ -1,0 +1,29 @@
+# Core AI/ML dependencies
+# NOTE: RTX 5080 (sm_120) requires PyTorch 2.5.1+ with CUDA 12.4+
+# Install with: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+torch>=2.5.1
+torchvision>=0.20.1
+torchaudio>=2.5.1
+faster-whisper>=1.0.0
+
+# Audio processing
+ffmpeg-python>=0.2.0
+
+# Progress bars and CLI utilities
+tqdm>=4.66.0
+
+# Optional but recommended for production
+numpy>=1.24.0
+
+# Web Server (FastAPI)
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+jinja2>=3.1.2
+websockets>=12.0
+
+# Data validation
+pydantic>=2.5.0
+
+# ASGI server production deployment (optional)
+gunicorn>=21.2.0

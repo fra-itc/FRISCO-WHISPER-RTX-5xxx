@@ -1,0 +1,273 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    FRISCO WHISPER RTX - API STRUCTURE                        ║
+║                              Version 1.0.0                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+BASE URL: http://localhost:8000/api/v1
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESOURCE: FILES - Audio file upload and management                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  POST   /files/upload
+         Upload audio file (M4A, MP3, WAV, MP4, AAC, FLAC, OPUS)
+         → Returns: file_id, is_new (duplicate detection via SHA256)
+
+  GET    /files
+         List uploaded files (paginated)
+         Query params: page, limit, format
+
+  GET    /files/{file_id}
+         Get file details
+
+  DELETE /files/{file_id}
+         Delete file (cascade deletes all associated jobs)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESOURCE: JOBS - Transcription job lifecycle management                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  POST   /jobs
+         Create transcription job
+         Accepts: file upload OR file_id reference
+         Parameters: model_size, task_type, language, compute_type, device, beam_size
+         → Returns: job_id, status, websocket_url
+
+  GET    /jobs
+         List jobs with filtering
+         Query params: page, limit, status, model_size, sort
+
+  GET    /jobs/{job_id}
+         Get job details
+         → Returns: full job info + file details + transcription (if completed)
+
+  DELETE /jobs/{job_id}
+         Delete job (cascade deletes transcriptions)
+
+  POST   /jobs/{job_id}/cancel
+         Cancel pending/processing job
+
+  POST   /jobs/{job_id}/retry
+         Retry failed job (creates new job)
+
+  JOB STATE MACHINE:
+  ┌─────────┐
+  │ pending │  Initial state
+  └────┬────┘
+       │
+       ↓
+  ┌────────────┐
+  │ processing │  Worker transcribing
+  └──┬─────┬───┘
+     │     │
+     │     ↓
+     │  ┌────────┐
+     │  │ failed │  Error occurred (can retry)
+     │  └────────┘
+     │
+     ↓
+  ┌───────────┐
+  │ completed │  Results available
+  └───────────┘
+
+     ↓ (user action)
+  ┌───────────┐
+  │ cancelled │  User cancelled
+  └───────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESOURCE: TRANSCRIPTIONS - Access transcription results                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  GET    /transcriptions/{job_id}
+         Get transcription results
+         Query params: format (json|srt|txt)
+         → Returns: full text + segments with timestamps
+
+  GET    /transcriptions/{job_id}/download
+         Download SRT file
+         → Returns: application/x-subrip file
+
+  GET    /transcriptions/search
+         Full-text search across all transcriptions
+         Query params: q (query), language, page, limit
+         → Returns: results with highlighted snippets
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESOURCE: SYSTEM - System health and monitoring                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  GET    /system/health
+         Simple health check
+         → Returns: status, version, timestamp
+
+  GET    /system/status
+         Detailed system status
+         → Returns: GPU info, job counts, performance metrics
+
+  GET    /system/gpu
+         GPU capabilities and recommendations
+         → Returns: device_name, vram_gb, cuda_version, supported_compute_types
+
+  GET    /system/statistics
+         Usage statistics
+         → Returns: job counts, file stats, processing times
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESOURCE: MODELS - Available AI models information                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  GET    /models
+         List available Whisper models
+         → Returns: models list with specs, recommended model
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ WEBSOCKET: Real-time job progress updates                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  WS     /ws/jobs/{job_id}
+         Connect for real-time progress updates
+
+         Message Types (Server → Client):
+         • progress    - Continuous transcription progress
+         • status      - Job state changes
+         • error       - Failure notifications
+         • pong        - Heartbeat response
+
+         Message Types (Client → Server):
+         • ping        - Connection keepalive
+
+         Example Progress Message:
+         {
+           "type": "progress",
+           "job_id": "550e8400-...",
+           "status": "processing",
+           "progress": {
+             "segment_number": 42,
+             "progress_pct": 35.5,
+             "text": "Current segment text",
+             "start": 120.5,
+             "end": 125.3,
+             "audio_duration": 350.0
+           }
+         }
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           COMMON PATTERNS                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+PAGINATION (all list endpoints):
+  Query Params: page=1, limit=50
+  Response:
+  {
+    "items": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total": 133,
+      "pages": 3
+    }
+  }
+
+ERROR RESPONSE (all endpoints):
+  {
+    "error": "ERROR_CODE",
+    "message": "Human-readable description",
+    "details": {},
+    "timestamp": "2025-11-20T10:30:00Z"
+  }
+
+HTTP STATUS CODES:
+  200 OK              - Successful GET/POST
+  201 Created         - Resource created
+  204 No Content      - Successful DELETE
+  400 Bad Request     - Invalid parameters
+  404 Not Found       - Resource doesn't exist
+  409 Conflict        - Operation conflict
+  413 Payload Too Large - File too large
+  415 Unsupported Media Type - Invalid file format
+  429 Too Many Requests - Rate limit exceeded
+  500 Internal Server Error - Server error
+  503 Service Unavailable - Service down
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         COMMON WORKFLOWS                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+WORKFLOW 1: Upload → Transcribe → Download
+  1. POST /files/upload              → file_id
+  2. POST /jobs (with file_id)       → job_id, websocket_url
+  3. WS   /ws/jobs/{job_id}          → real-time progress
+  4. GET  /jobs/{job_id}             → status: completed
+  5. GET  /transcriptions/{job_id}/download → SRT file
+
+WORKFLOW 2: Quick Transcription (Single Request)
+  1. POST /jobs (with file upload)   → job_id, websocket_url
+  2. WS   /ws/jobs/{job_id}          → real-time progress
+  3. GET  /transcriptions/{job_id}   → results
+
+WORKFLOW 3: Search and Retrieve
+  1. GET  /transcriptions/search?q=keyword → results list
+  2. GET  /transcriptions/{job_id}   → full transcription
+  3. GET  /transcriptions/{job_id}/download → SRT file
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          SUPPORTED MODELS                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  tiny       - 1GB VRAM  - Very Fast   - Basic accuracy
+  base       - 1GB VRAM  - Fast        - Good accuracy
+  small      - 2GB VRAM  - Medium      - Good accuracy
+  medium     - 5GB VRAM  - Medium      - High accuracy
+  large      - 10GB VRAM - Slow        - Excellent accuracy
+  large-v2   - 10GB VRAM - Slow        - Excellent accuracy
+  large-v3   - 10GB VRAM - Slow        - Excellent accuracy (RECOMMENDED)
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         COMPUTE TYPES                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  float16      - Optimal for RTX cards (speed + accuracy)
+  float32      - Universal compatibility (slower)
+  int8         - Maximum speed (slightly reduced accuracy)
+  int8_float32 - Mixed precision
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      SUPPORTED AUDIO FORMATS                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  m4a          - Audio AAC (iPhone, recorders)
+  mp3          - MP3 (universal)
+  wav          - WAV uncompressed
+  mp4          - Video MP4 (extracts audio)
+  aac          - Audio AAC raw
+  flac         - Audio lossless
+  opus         - Opus codec
+  waptt.opus   - WhatsApp voice messages
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           TOTAL ENDPOINTS                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  REST Endpoints:  19
+  WebSocket:       1
+  ─────────────────────
+  TOTAL:           20
+
+  Resource Breakdown:
+  • Files:          4 endpoints
+  • Jobs:           6 endpoints
+  • Transcriptions: 3 endpoints
+  • System:         4 endpoints
+  • Models:         1 endpoint
+  • WebSocket:      1 endpoint
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         DOCUMENTATION FILES                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  docs/api.yaml           - OpenAPI 3.0 specification (42KB)
+  docs/API_DESIGN.md      - Design decisions and architecture (32KB)
+  docs/API_EXAMPLES.md    - Usage examples and curl commands (25KB)
+  docs/SYNC-1_SUMMARY.md  - Implementation summary and next steps
+  docs/API_STRUCTURE.txt  - This file (visual structure)

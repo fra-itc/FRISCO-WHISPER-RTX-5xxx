@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.2-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
-![CUDA](https://img.shields.io/badge/CUDA-12.1+-orange.svg)
+![CUDA](https://img.shields.io/badge/CUDA-12.4+-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
 **Trascrizione e traduzione audio AI ottimizzata per GPU NVIDIA RTX 5xxx**
@@ -41,9 +41,12 @@ Strumento professionale di trascrizione audio basato su OpenAI Whisper con accel
 
 ### Software
 - **Python**: 3.8 o superiore
-- **CUDA Toolkit**: 12.1 o superiore
+- **CUDA Toolkit**: 12.4 o superiore (**12.6 raccomandato per RTX 5080**)
+- **PyTorch**: 2.5.1+ con supporto sm_120
 - **ffmpeg**: Per conversione audio
 - **Sistema operativo**: Windows 10/11, Linux (Ubuntu 20.04+)
+
+> **Nota RTX 5080**: La RTX 5080 richiede PyTorch 2.5.1+ compilato con CUDA 12.4+ per supporto completo della compute capability sm_120. Vedi [PYTORCH_RTX5080_UPGRADE_GUIDE.md](PYTORCH_RTX5080_UPGRADE_GUIDE.md) per istruzioni dettagliate.
 
 ## Installazione
 
@@ -70,14 +73,27 @@ sudo apt install ffmpeg
 brew install ffmpeg
 ```
 
-### 3. Esegui il programma
-Il programma installerà automaticamente le dipendenze Python al primo avvio:
+### 3. Installa PyTorch con supporto RTX 5080
+**IMPORTANTE per RTX 5080**: Installa PyTorch 2.5.1+ con CUDA 12.4+
+
+```bash
+pip install torch>=2.5.1 torchvision>=0.20.1 torchaudio>=2.5.1 --index-url https://download.pytorch.org/whl/cu124
+```
+
+> **Se vedi warning "sm_120 not compatible"**, significa che hai PyTorch compilato con CUDA più vecchia. Segui la [guida di upgrade](PYTORCH_RTX5080_UPGRADE_GUIDE.md).
+
+### 4. Installa altre dipendenze
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Esegui il programma
 ```bash
 python3 whisper_transcribe_frisco.py
 ```
 
-Le seguenti librerie verranno installate automaticamente:
-- `torch` (con supporto CUDA 12.1)
+Le seguenti librerie verranno installate:
+- `torch` (con supporto CUDA 12.4+ e sm_120)
 - `faster-whisper`
 - `ffmpeg-python`
 - `tqdm`
@@ -222,14 +238,24 @@ condition_on_previous_text=True  # Contesto frasi precedenti
 
 ## Troubleshooting
 
-### GPU non rilevata
-```bash
-# Verifica CUDA
-python3 -c "import torch; print(torch.cuda.is_available())"
+### GPU non rilevata o Warning "sm_120 not compatible"
+Questo significa che PyTorch non supporta completamente la RTX 5080. Soluzione:
 
-# Reinstalla PyTorch con CUDA
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+```bash
+# Test GPU attuale
+python test_gpu.py
+
+# Se serve upgrade, disinstalla vecchia versione
+pip uninstall torch torchvision torchaudio -y
+
+# Installa PyTorch 2.5.1 con CUDA 12.4
+pip install torch>=2.5.1 torchvision>=0.20.1 torchaudio>=2.5.1 --index-url https://download.pytorch.org/whl/cu124
+
+# Verifica installazione
+python test_gpu.py
 ```
+
+📖 **Guida completa**: [PYTORCH_RTX5080_UPGRADE_GUIDE.md](PYTORCH_RTX5080_UPGRADE_GUIDE.md)
 
 ### ffmpeg non trovato
 ```bash
