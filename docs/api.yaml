@@ -1,0 +1,1420 @@
+openapi: 3.0.3
+info:
+  title: Frisco Whisper RTX - Transcription API
+  description: |
+    RESTful API for the Frisco Whisper RTX audio transcription service.
+
+    This API provides endpoints for:
+    - Audio file upload and management
+    - Transcription job creation and management
+    - Real-time progress monitoring via WebSockets
+    - Transcription results retrieval
+    - Full-text search across transcriptions
+    - System health and GPU status monitoring
+
+    The API uses a job-based asynchronous model where transcription tasks are
+    queued and processed in the background, with real-time progress updates
+    available through WebSocket connections.
+
+  version: 1.0.0
+  contact:
+    name: Frisco
+    url: https://github.com/fra-itc/FRISCO-WHISPER-RTX-5xxx
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.frisco-whisper.local/api/v1
+    description: Production server
+
+tags:
+  - name: Files
+    description: Audio file upload and management operations
+  - name: Jobs
+    description: Transcription job lifecycle management
+  - name: Transcriptions
+    description: Access transcription results and search
+  - name: System
+    description: System health, status, and GPU information
+  - name: Models
+    description: Available AI models information
+
+paths:
+  # ============================================================================
+  # FILES ENDPOINTS
+  # ============================================================================
+
+  /files/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload audio file
+      description: |
+        Upload an audio file for transcription. The file is automatically
+        deduplicated using SHA256 hashing. If the same file has been uploaded
+        before, the existing file_id will be returned.
+
+        Supported formats: M4A, MP3, WAV, MP4, AAC, FLAC, OPUS
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Audio file to upload
+            encoding:
+              file:
+                contentType: audio/*
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '200':
+          description: File already exists (duplicate detected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported media type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files:
+    get:
+      tags:
+        - Files
+      summary: List uploaded files
+      description: Get a paginated list of uploaded audio files
+      operationId: listFiles
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: format
+          in: query
+          description: Filter by audio format
+          schema:
+            type: string
+            enum: [m4a, mp3, wav, mp4, aac, flac, opus, 'waptt.opus']
+      responses:
+        '200':
+          description: List of files retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{file_id}:
+    get:
+      tags:
+        - Files
+      summary: Get file details
+      description: Get detailed information about a specific file
+      operationId: getFile
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: File details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Files
+      summary: Delete file
+      description: |
+        Delete a file and all associated transcription jobs (cascade delete).
+        This operation cannot be undone.
+      operationId: deleteFile
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '204':
+          description: File deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================================
+  # JOBS ENDPOINTS
+  # ============================================================================
+
+  /jobs:
+    post:
+      tags:
+        - Jobs
+      summary: Create transcription job
+      description: |
+        Create a new transcription job. The job will be queued for processing
+        and can be monitored via the job status endpoint or WebSocket connection.
+
+        You can either upload a new file or reference an existing file_id.
+      operationId: createJob
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequestJSON'
+      responses:
+        '201':
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: File not found (when using file_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Jobs
+      summary: List jobs
+      description: Get a paginated list of transcription jobs with optional filtering
+      operationId: listJobs
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          description: Filter by job status
+          schema:
+            $ref: '#/components/schemas/JobStatus'
+        - name: model_size
+          in: query
+          description: Filter by model size
+          schema:
+            $ref: '#/components/schemas/ModelSize'
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [created_desc, created_asc, updated_desc, updated_asc]
+            default: created_desc
+      responses:
+        '200':
+          description: List of jobs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job details
+      description: Get detailed information about a specific transcription job
+      operationId: getJob
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+      responses:
+        '200':
+          description: Job details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Jobs
+      summary: Delete job
+      description: |
+        Delete a job and all associated transcriptions (cascade delete).
+        If the job is currently processing, it will be cancelled first.
+      operationId: deleteJob
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+      responses:
+        '204':
+          description: Job deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}/cancel:
+    post:
+      tags:
+        - Jobs
+      summary: Cancel job
+      description: |
+        Cancel a pending or processing job. The job status will be set to 'cancelled'.
+        If the job is already completed or failed, this operation will fail.
+      operationId: cancelJob
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+      responses:
+        '200':
+          description: Job cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Job cannot be cancelled (already completed or failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /jobs/{job_id}/retry:
+    post:
+      tags:
+        - Jobs
+      summary: Retry failed job
+      description: |
+        Retry a failed job. Creates a new job with the same parameters.
+        Only works for jobs with status 'failed'.
+      operationId: retryJob
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+      responses:
+        '201':
+          description: Retry job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCreatedResponse'
+        '400':
+          description: Job cannot be retried (not in failed status)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================================
+  # TRANSCRIPTIONS ENDPOINTS
+  # ============================================================================
+
+  /transcriptions/{job_id}:
+    get:
+      tags:
+        - Transcriptions
+      summary: Get transcription results
+      description: |
+        Get the transcription results for a completed job. Returns the full
+        text, segments with timestamps, and metadata.
+      operationId: getTranscription
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+        - name: format
+          in: query
+          description: Response format
+          schema:
+            type: string
+            enum: [json, srt, txt]
+            default: json
+      responses:
+        '200':
+          description: Transcription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transcription'
+            text/plain:
+              schema:
+                type: string
+                description: Plain text transcription (when format=txt)
+            application/x-subrip:
+              schema:
+                type: string
+                description: SRT subtitle file (when format=srt)
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Job not completed yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /transcriptions/{job_id}/download:
+    get:
+      tags:
+        - Transcriptions
+      summary: Download transcription file
+      description: |
+        Download the SRT transcription file for a completed job.
+        Returns the file as an attachment with proper content disposition headers.
+      operationId: downloadTranscription
+      parameters:
+        - $ref: '#/components/parameters/JobIdParam'
+      responses:
+        '200':
+          description: SRT file download
+          content:
+            application/x-subrip:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="audio_transcript.srt"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Job not completed yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /transcriptions/search:
+    get:
+      tags:
+        - Transcriptions
+      summary: Search transcriptions
+      description: |
+        Full-text search across all transcriptions. Uses SQLite FTS5 for
+        fast and efficient searching with support for advanced queries.
+      operationId: searchTranscriptions
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+            minLength: 2
+            example: "artificial intelligence"
+        - name: language
+          in: query
+          description: Filter by language
+          schema:
+            type: string
+            example: "en"
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Invalid search query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================================
+  # SYSTEM ENDPOINTS
+  # ============================================================================
+
+  /system/health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: |
+        Check if the API server is running and healthy. Returns basic
+        service information and status.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /system/status:
+    get:
+      tags:
+        - System
+      summary: Get system status
+      description: |
+        Get comprehensive system status including GPU information,
+        job queue status, and performance metrics.
+      operationId: getSystemStatus
+      responses:
+        '200':
+          description: System status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /system/gpu:
+    get:
+      tags:
+        - System
+      summary: Get GPU information
+      description: |
+        Get detailed GPU information including CUDA availability,
+        device specifications, supported compute types, and recommendations.
+      operationId: getGPUInfo
+      responses:
+        '200':
+          description: GPU information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GPUInfo'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /system/statistics:
+    get:
+      tags:
+        - System
+      summary: Get statistics
+      description: |
+        Get comprehensive statistics including job counts, processing times,
+        audio duration totals, and file statistics.
+      operationId: getStatistics
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================================
+  # MODELS ENDPOINTS
+  # ============================================================================
+
+  /models:
+    get:
+      tags:
+        - Models
+      summary: List available models
+      description: |
+        Get a list of available Whisper models with their specifications,
+        memory requirements, and performance characteristics.
+      operationId: listModels
+      responses:
+        '200':
+          description: List of models retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ==============================================================================
+# COMPONENTS
+# ==============================================================================
+
+components:
+  # ============================================================================
+  # SCHEMAS
+  # ============================================================================
+
+  schemas:
+    # -------------------------------------------------------------------------
+    # File Schemas
+    # -------------------------------------------------------------------------
+
+    File:
+      type: object
+      required:
+        - id
+        - file_hash
+        - original_name
+        - file_path
+        - size_bytes
+        - format
+        - uploaded_at
+      properties:
+        id:
+          type: integer
+          description: Unique file identifier
+          example: 42
+        file_hash:
+          type: string
+          description: SHA256 hash for duplicate detection
+          example: "a3b5c7d9e1f2..."
+        original_name:
+          type: string
+          description: Original filename
+          example: "meeting_recording.m4a"
+        file_path:
+          type: string
+          description: Server file path
+          example: "/uploads/2025/11/meeting_recording.m4a"
+        size_bytes:
+          type: integer
+          description: File size in bytes
+          example: 15728640
+        format:
+          type: string
+          enum: [m4a, mp3, wav, mp4, aac, flac, opus, 'waptt.opus']
+          description: Audio format
+          example: "m4a"
+        uploaded_at:
+          type: string
+          format: date-time
+          description: Upload timestamp
+          example: "2025-11-20T10:30:00Z"
+
+    FileUploadResponse:
+      type: object
+      required:
+        - file_id
+        - is_new
+        - file
+      properties:
+        file_id:
+          type: integer
+          description: File identifier
+          example: 42
+        is_new:
+          type: boolean
+          description: Whether this is a new file (false if duplicate detected)
+          example: true
+        file:
+          $ref: '#/components/schemas/File'
+        message:
+          type: string
+          description: Additional information
+          example: "File uploaded successfully"
+
+    FileListResponse:
+      type: object
+      required:
+        - files
+        - pagination
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # -------------------------------------------------------------------------
+    # Job Schemas
+    # -------------------------------------------------------------------------
+
+    JobStatus:
+      type: string
+      enum: [pending, processing, completed, failed, cancelled]
+      description: |
+        Job status:
+        - pending: Job is queued and waiting to be processed
+        - processing: Job is currently being transcribed
+        - completed: Job finished successfully
+        - failed: Job failed with an error
+        - cancelled: Job was cancelled by user
+
+    ModelSize:
+      type: string
+      enum: [tiny, base, small, medium, large, large-v2, large-v3]
+      description: |
+        Whisper model size:
+        - tiny: Fastest, least accurate (~1GB VRAM)
+        - base: Fast, basic accuracy (~1GB VRAM)
+        - small: Good balance (~2GB VRAM)
+        - medium: High quality (~5GB VRAM)
+        - large: Best quality (~10GB VRAM)
+        - large-v2: Previous large version
+        - large-v3: Latest large version (recommended)
+
+    ComputeType:
+      type: string
+      enum: [float16, float32, int8, int8_float32]
+      description: |
+        Computation precision type:
+        - float16: Optimal for RTX cards (speed + accuracy)
+        - float32: Universal compatibility, slower
+        - int8: Maximum speed, slightly reduced accuracy
+        - int8_float32: Mixed precision
+
+    CreateJobRequest:
+      type: object
+      required:
+        - file
+        - model_size
+      properties:
+        file:
+          type: string
+          format: binary
+          description: Audio file to transcribe
+        model_size:
+          $ref: '#/components/schemas/ModelSize'
+        task_type:
+          type: string
+          enum: [transcribe, translate]
+          default: transcribe
+          description: |
+            - transcribe: Keep original language
+            - translate: Translate to English
+        language:
+          type: string
+          description: Source language code (null for auto-detection)
+          example: "it"
+          nullable: true
+        compute_type:
+          $ref: '#/components/schemas/ComputeType'
+        device:
+          type: string
+          enum: [cuda, cpu]
+          description: Device to use (auto-detected if not specified)
+          nullable: true
+        beam_size:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+          description: Beam search size (higher = more accurate but slower)
+
+    CreateJobRequestJSON:
+      type: object
+      required:
+        - file_id
+        - model_size
+      properties:
+        file_id:
+          type: integer
+          description: ID of previously uploaded file
+          example: 42
+        model_size:
+          $ref: '#/components/schemas/ModelSize'
+        task_type:
+          type: string
+          enum: [transcribe, translate]
+          default: transcribe
+        language:
+          type: string
+          description: Source language code (null for auto-detection)
+          example: "it"
+          nullable: true
+        compute_type:
+          $ref: '#/components/schemas/ComputeType'
+        device:
+          type: string
+          enum: [cuda, cpu]
+          nullable: true
+        beam_size:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+
+    Job:
+      type: object
+      required:
+        - job_id
+        - file_id
+        - file_name
+        - model_size
+        - status
+        - task_type
+        - created_at
+        - updated_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: Unique job identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        file_id:
+          type: integer
+          description: Associated file ID
+          example: 42
+        file_name:
+          type: string
+          description: Audio filename
+          example: "meeting_recording.m4a"
+        model_size:
+          $ref: '#/components/schemas/ModelSize'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        task_type:
+          type: string
+          enum: [transcribe, translate]
+        language:
+          type: string
+          description: Requested language (null if auto-detect)
+          nullable: true
+          example: "it"
+        detected_language:
+          type: string
+          description: Auto-detected language
+          nullable: true
+          example: "en"
+        language_probability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Language detection confidence
+          nullable: true
+          example: 0.98
+        compute_type:
+          $ref: '#/components/schemas/ComputeType'
+        device:
+          type: string
+          enum: [cuda, cpu]
+          nullable: true
+        beam_size:
+          type: integer
+          example: 5
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:32:15Z"
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-11-20T10:30:05Z"
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-11-20T10:32:15Z"
+        duration_seconds:
+          type: number
+          format: float
+          description: Audio duration in seconds
+          nullable: true
+          example: 125.5
+        processing_time_seconds:
+          type: number
+          format: float
+          description: Time taken to process
+          nullable: true
+          example: 18.3
+        error_message:
+          type: string
+          description: Error details if status is 'failed'
+          nullable: true
+        file_details:
+          $ref: '#/components/schemas/File'
+        transcription:
+          $ref: '#/components/schemas/Transcription'
+
+    JobCreatedResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - websocket_url
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        message:
+          type: string
+          example: "Job created successfully and queued for processing"
+        websocket_url:
+          type: string
+          format: uri
+          description: WebSocket URL for real-time progress updates
+          example: "ws://localhost:8000/ws/jobs/550e8400-e29b-41d4-a716-446655440000"
+        job:
+          $ref: '#/components/schemas/Job'
+
+    JobListResponse:
+      type: object
+      required:
+        - jobs
+        - pagination
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # -------------------------------------------------------------------------
+    # Transcription Schemas
+    # -------------------------------------------------------------------------
+
+    Segment:
+      type: object
+      required:
+        - segment_number
+        - start
+        - end
+        - text
+      properties:
+        segment_number:
+          type: integer
+          description: Segment index
+          example: 1
+        start:
+          type: number
+          format: float
+          description: Start time in seconds
+          example: 0.0
+        end:
+          type: number
+          format: float
+          description: End time in seconds
+          example: 3.5
+        text:
+          type: string
+          description: Transcribed text for this segment
+          example: "Welcome to the meeting."
+
+    Transcription:
+      type: object
+      required:
+        - id
+        - job_id
+        - text
+        - language
+        - segment_count
+        - segments
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: Transcription ID
+          example: 123
+        job_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        text:
+          type: string
+          description: Full transcription text
+          example: "Welcome to the meeting. Today we will discuss..."
+        language:
+          type: string
+          description: Transcription language
+          example: "en"
+        segment_count:
+          type: integer
+          description: Number of segments
+          example: 42
+        segments:
+          type: array
+          description: Array of timestamped segments
+          items:
+            $ref: '#/components/schemas/Segment'
+        srt_path:
+          type: string
+          description: Path to SRT file
+          nullable: true
+          example: "/transcripts/meeting_recording.srt"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:32:15Z"
+
+    SearchResponse:
+      type: object
+      required:
+        - results
+        - pagination
+      properties:
+        query:
+          type: string
+          description: Original search query
+          example: "artificial intelligence"
+        results:
+          type: array
+          items:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Transcription'
+              - type: object
+                properties:
+                  snippet:
+                    type: string
+                    description: Highlighted search result snippet
+                    example: "...discussing <mark>artificial intelligence</mark> applications..."
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # -------------------------------------------------------------------------
+    # System Schemas
+    # -------------------------------------------------------------------------
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        version:
+          type: string
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:30:00Z"
+
+    GPUInfo:
+      type: object
+      required:
+        - available
+      properties:
+        available:
+          type: boolean
+          description: Whether GPU is available
+          example: true
+        device_name:
+          type: string
+          description: GPU device name
+          nullable: true
+          example: "NVIDIA GeForce RTX 5080"
+        vram_gb:
+          type: number
+          format: float
+          description: VRAM in gigabytes
+          example: 16.0
+        cuda_version:
+          type: string
+          description: CUDA version
+          nullable: true
+          example: "12.1"
+        supported_compute_types:
+          type: array
+          description: Supported compute types
+          nullable: true
+          items:
+            type: string
+          example: ["float16", "float32", "int8"]
+        recommended_compute_type:
+          type: string
+          description: Recommended compute type for this GPU
+          nullable: true
+          example: "float16"
+
+    SystemStatus:
+      type: object
+      required:
+        - gpu
+        - jobs
+        - timestamp
+      properties:
+        gpu:
+          $ref: '#/components/schemas/GPUInfo'
+        jobs:
+          type: object
+          required:
+            - pending
+            - processing
+            - completed
+            - failed
+          properties:
+            pending:
+              type: integer
+              description: Number of pending jobs
+              example: 3
+            processing:
+              type: integer
+              description: Number of processing jobs
+              example: 1
+            completed:
+              type: integer
+              description: Number of completed jobs
+              example: 127
+            failed:
+              type: integer
+              description: Number of failed jobs
+              example: 2
+        performance:
+          type: object
+          properties:
+            avg_processing_time:
+              type: number
+              format: float
+              description: Average processing time in seconds
+              example: 18.5
+            total_audio_processed:
+              type: number
+              format: float
+              description: Total audio duration processed (seconds)
+              example: 3600.0
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:30:00Z"
+
+    Statistics:
+      type: object
+      required:
+        - total_jobs
+        - total_files
+        - total_size
+      properties:
+        total_jobs:
+          type: integer
+          description: Total number of jobs
+          example: 133
+        completed_jobs:
+          type: integer
+          description: Number of completed jobs
+          example: 127
+        failed_jobs:
+          type: integer
+          description: Number of failed jobs
+          example: 2
+        processing_jobs:
+          type: integer
+          description: Number of processing jobs
+          example: 1
+        pending_jobs:
+          type: integer
+          description: Number of pending jobs
+          example: 3
+        total_files:
+          type: integer
+          description: Total number of unique files
+          example: 98
+        total_size:
+          type: integer
+          description: Total size of all files in bytes
+          example: 1542087680
+        avg_processing_time:
+          type: number
+          format: float
+          description: Average processing time in seconds
+          nullable: true
+          example: 18.5
+        total_audio_duration:
+          type: number
+          format: float
+          description: Total audio duration in seconds
+          nullable: true
+          example: 3600.0
+
+    ModelInfo:
+      type: object
+      required:
+        - name
+        - size
+        - vram_gb
+        - speed
+        - accuracy
+      properties:
+        name:
+          type: string
+          description: Model name
+          example: "large-v3"
+        display_name:
+          type: string
+          description: Human-readable name
+          example: "Large V3 (Recommended)"
+        size:
+          type: string
+          description: Model size category
+          example: "large"
+        vram_gb:
+          type: number
+          format: float
+          description: Approximate VRAM requirement
+          example: 10.0
+        speed:
+          type: string
+          enum: [very_fast, fast, medium, slow, very_slow]
+          description: Relative speed
+          example: "slow"
+        accuracy:
+          type: string
+          enum: [basic, good, high, very_high, excellent]
+          description: Relative accuracy
+          example: "excellent"
+        languages:
+          type: integer
+          description: Number of supported languages
+          example: 99
+        description:
+          type: string
+          description: Model description
+          example: "Best quality transcription, recommended for production use"
+
+    ModelListResponse:
+      type: object
+      required:
+        - models
+        - recommended
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelInfo'
+        recommended:
+          type: string
+          description: Recommended model based on available GPU
+          example: "large-v3"
+
+    # -------------------------------------------------------------------------
+    # Common Schemas
+    # -------------------------------------------------------------------------
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - pages
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-indexed)
+          example: 1
+        limit:
+          type: integer
+          description: Items per page
+          example: 50
+        total:
+          type: integer
+          description: Total number of items
+          example: 133
+        pages:
+          type: integer
+          description: Total number of pages
+          example: 3
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type/code
+          example: "BAD_REQUEST"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid model size specified"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-20T10:30:00Z"
+
+  # ============================================================================
+  # PARAMETERS
+  # ============================================================================
+
+  parameters:
+    FileIdParam:
+      name: file_id
+      in: path
+      required: true
+      description: File identifier
+      schema:
+        type: integer
+      example: 42
+
+    JobIdParam:
+      name: job_id
+      in: path
+      required: true
+      description: Job UUID
+      schema:
+        type: string
+        format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      example: 50
+
+  # ============================================================================
+  # RESPONSES
+  # ============================================================================
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "BAD_REQUEST"
+            message: "Invalid model size specified"
+            timestamp: "2025-11-20T10:30:00Z"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "Job not found"
+            timestamp: "2025-11-20T10:30:00Z"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "INTERNAL_SERVER_ERROR"
+            message: "An unexpected error occurred"
+            timestamp: "2025-11-20T10:30:00Z"
+
+# ==============================================================================
+# WEBSOCKET PROTOCOL
+# ==============================================================================
+
+# WebSocket endpoint: ws://localhost:8000/ws/jobs/{job_id}
+#
+# Message Types:
+#
+# 1. Progress Update (from server):
+# {
+#   "type": "progress",
+#   "job_id": "550e8400-e29b-41d4-a716-446655440000",
+#   "status": "processing",
+#   "progress": {
+#     "segment_number": 42,
+#     "total_segments": null,
+#     "progress_pct": 35.5,
+#     "text": "Current segment text",
+#     "start": 120.5,
+#     "end": 125.3,
+#     "audio_duration": 350.0
+#   },
+#   "timestamp": "2025-11-20T10:31:00Z"
+# }
+#
+# 2. Status Update (from server):
+# {
+#   "type": "status",
+#   "job_id": "550e8400-e29b-41d4-a716-446655440000",
+#   "status": "completed",
+#   "message": "Transcription completed successfully",
+#   "timestamp": "2025-11-20T10:32:15Z"
+# }
+#
+# 3. Error (from server):
+# {
+#   "type": "error",
+#   "job_id": "550e8400-e29b-41d4-a716-446655440000",
+#   "error": "TRANSCRIPTION_FAILED",
+#   "message": "Model failed to load",
+#   "timestamp": "2025-11-20T10:31:30Z"
+# }
+#
+# 4. Heartbeat (bidirectional):
+# {
+#   "type": "ping"
+# }
+# Response:
+# {
+#   "type": "pong"
+# }

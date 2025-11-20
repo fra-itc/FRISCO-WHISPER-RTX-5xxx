@@ -1,0 +1,91 @@
+# Git files
+.git/
+.gitignore
+.gitattributes
+*.git
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude and project management
+.claude/
+.claude_parallel/
+
+# Log files
+logs/*.log
+*.log
+
+# Audio and transcript files (mounted as volumes)
+audio/*
+transcripts/*
+models/*
+
+# Keep only the directory structure
+!audio/.gitkeep
+!transcripts/.gitkeep
+!logs/.gitkeep
+!models/.gitkeep
+
+# Docker files (not needed in image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+README_DOCKER.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Other Python scripts (only include the main one)
+whisper_transcribe.py
+whisper_transcribe_final.py
+
+# Test files
+test/
+tests/
+*_test.py
+test_*.py
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
