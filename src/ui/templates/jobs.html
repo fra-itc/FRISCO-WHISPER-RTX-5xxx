@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}Jobs - Frisco Whisper RTX{% endblock %}
+{% block nav_jobs %}active{% endblock %}
+
+{% block content %}
+<div class="jobs-page">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1>
+                <i class="fas fa-list"></i>
+                Transcription Jobs
+            </h1>
+            <p>Manage and monitor your transcription jobs</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                New Job
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--success-color);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statCompleted">0</h3>
+                <p>Completed</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--primary-color);">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statProcessing">0</h3>
+                <p>Processing</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--warning-color);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statPending">0</h3>
+                <p>Pending</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--danger-color);">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statFailed">0</h3>
+                <p>Failed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="statusFilter">
+                <i class="fas fa-filter"></i>
+                Filter by Status
+            </label>
+            <select id="statusFilter" class="form-control">
+                <option value="">All Jobs</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="searchInput">
+                <i class="fas fa-search"></i>
+                Search
+            </label>
+            <input type="text" id="searchInput" class="form-control" placeholder="Search by filename...">
+        </div>
+    </div>
+
+    <!-- Jobs Table -->
+    <div class="jobs-table-container">
+        <div class="jobs-loading" id="jobsLoading">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <p>Loading jobs...</p>
+        </div>
+
+        <table class="jobs-table" id="jobsTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>File Name</th>
+                    <th>Model</th>
+                    <th>Language</th>
+                    <th>Created</th>
+                    <th>Duration</th>
+                    <th>Progress</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="jobsTableBody">
+                <!-- Jobs will be inserted here -->
+            </tbody>
+        </table>
+
+        <div class="no-jobs" id="noJobs" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>No jobs found</h3>
+            <p>Upload a file to create your first transcription job</p>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-upload"></i>
+                Upload File
+            </a>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display: none;">
+        <button class="btn btn-secondary" id="prevPage" disabled>
+            <i class="fas fa-chevron-left"></i>
+            Previous
+        </button>
+        <span id="pageInfo">Page 1</span>
+        <button class="btn btn-secondary" id="nextPage">
+            Next
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Job Details Modal -->
+<div class="modal" id="jobModal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>
+                <i class="fas fa-info-circle"></i>
+                Job Details
+            </h2>
+            <button class="modal-close" id="closeModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="jobModalBody">
+            <!-- Job details will be inserted here -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentPage = 1;
+let currentFilter = '';
+let jobsData = [];
+let activeWebSockets = new Map();
+
+// Load jobs
+async function loadJobs() {
+    try {
+        showLoading(true);
+
+        const url = currentFilter
+            ? `/api/v1/jobs?status=${currentFilter}&limit=50`
+            : `/api/v1/jobs?limit=50`;
+
+        const response = await fetch(url);
+        jobsData = await response.json();
+
+        renderJobs();
+        showLoading(false);
+
+    } catch (error) {
+        console.error('Failed to load jobs:', error);
+        showToast('Failed to load jobs', 'error');
+        showLoading(false);
+    }
+}
+
+// Load statistics
+async function loadStatistics() {
+    try {
+        const response = await fetch('/api/v1/system/statistics');
+        const stats = await response.json();
+
+        document.getElementById('statCompleted').textContent = stats.completed_jobs || 0;
+        document.getElementById('statProcessing').textContent = stats.processing_jobs || 0;
+        document.getElementById('statPending').textContent = stats.pending_jobs || 0;
+        document.getElementById('statFailed').textContent = stats.failed_jobs || 0;
+
+    } catch (error) {
+        console.error('Failed to load statistics:', error);
+    }
+}
+
+// Render jobs table
+function renderJobs() {
+    const tbody = document.getElementById('jobsTableBody');
+    const table = document.getElementById('jobsTable');
+    const noJobs = document.getElementById('noJobs');
+
+    if (jobsData.length === 0) {
+        table.style.display = 'none';
+        noJobs.style.display = 'flex';
+        return;
+    }
+
+    table.style.display = 'table';
+    noJobs.style.display = 'none';
+
+    tbody.innerHTML = jobsData.map(job => {
+        const statusClass = `status-${job.status}`;
+        const statusIcon = getStatusIcon(job.status);
+
+        return `
+            <tr data-job-id="${job.job_id}" class="job-row">
+                <td>
+                    <span class="status-badge ${statusClass}">
+                        ${statusIcon}
+                        ${job.status}
+                    </span>
+                </td>
+                <td>
+                    <div class="file-cell">
+                        <i class="fas fa-file-audio"></i>
+                        <span>${job.file_name || 'Unknown'}</span>
+                    </div>
+                </td>
+                <td>${job.model_size}</td>
+                <td>${job.detected_language || job.language || 'Auto'}</td>
+                <td>${formatDate(job.created_at)}</td>
+                <td>${job.processing_time_seconds ? formatDuration(job.processing_time_seconds) : '-'}</td>
+                <td>
+                    ${job.status === 'processing' ? `
+                        <div class="progress-bar-mini">
+                            <div class="progress-fill-mini" id="progress-${job.job_id}" style="width: 0%"></div>
+                        </div>
+                    ` : '-'}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-secondary" onclick="viewJob('${job.job_id}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${job.status === 'completed' ? `
+                            <button class="btn btn-sm btn-success" onclick="downloadResult('${job.job_id}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-danger" onclick="deleteJob('${job.job_id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // Connect WebSockets for processing jobs
+    jobsData.forEach(job => {
+        if (job.status === 'processing' || job.status === 'pending') {
+            connectWebSocket(job.job_id);
+        }
+    });
+}
+
+// Connect WebSocket for job progress
+function connectWebSocket(jobId) {
+    if (activeWebSockets.has(jobId)) {
+        return; // Already connected
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/jobs/${jobId}`);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'progress') {
+            updateJobProgress(jobId, data);
+        } else if (data.type === 'status') {
+            if (data.status === 'completed' || data.status === 'failed') {
+                loadJobs(); // Reload jobs when status changes
+                loadStatistics();
+                ws.close();
+            }
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+        activeWebSockets.delete(jobId);
+    };
+
+    activeWebSockets.set(jobId, ws);
+}
+
+// Update job progress
+function updateJobProgress(jobId, data) {
+    const progressBar = document.getElementById(`progress-${jobId}`);
+    if (progressBar && data.progress_pct) {
+        progressBar.style.width = `${Math.min(data.progress_pct, 100)}%`;
+    }
+}
+
+// View job details
+async function viewJob(jobId) {
+    try {
+        const response = await fetch(`/api/v1/jobs/${jobId}`);
+        const job = await response.json();
+
+        const modalBody = document.getElementById('jobModalBody');
+        modalBody.innerHTML = `
+            <div class="job-details">
+                <div class="detail-group">
+                    <h3>Job Information</h3>
+                    <table class="detail-table">
+                        <tr>
+                            <td><strong>Job ID:</strong></td>
+                            <td><code>${job.job_id}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td><span class="status-badge status-${job.status}">${getStatusIcon(job.status)} ${job.status}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>File Name:</strong></td>
+                            <td>${job.file_name}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Model:</strong></td>
+                            <td>${job.model_size}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Task Type:</strong></td>
+                            <td>${job.task_type}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="detail-group">
+                    <h3>Processing Details</h3>
+                    <table class="detail-table">
+                        <tr>
+                            <td><strong>Language:</strong></td>
+                            <td>${job.detected_language || job.language || 'Auto-detect'}</td>
+                        </tr>
+                        ${job.language_probability ? `
+                        <tr>
+                            <td><strong>Confidence:</strong></td>
+                            <td>${(job.language_probability * 100).toFixed(1)}%</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td><strong>Device:</strong></td>
+                            <td>${job.device || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Compute Type:</strong></td>
+                            <td>${job.compute_type || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Beam Size:</strong></td>
+                            <td>${job.beam_size || 5}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="detail-group">
+                    <h3>Timing</h3>
+                    <table class="detail-table">
+                        <tr>
+                            <td><strong>Created:</strong></td>
+                            <td>${formatDate(job.created_at)}</td>
+                        </tr>
+                        ${job.started_at ? `
+                        <tr>
+                            <td><strong>Started:</strong></td>
+                            <td>${formatDate(job.started_at)}</td>
+                        </tr>
+                        ` : ''}
+                        ${job.completed_at ? `
+                        <tr>
+                            <td><strong>Completed:</strong></td>
+                            <td>${formatDate(job.completed_at)}</td>
+                        </tr>
+                        ` : ''}
+                        ${job.processing_time_seconds ? `
+                        <tr>
+                            <td><strong>Processing Time:</strong></td>
+                            <td>${formatDuration(job.processing_time_seconds)}</td>
+                        </tr>
+                        ` : ''}
+                    </table>
+                </div>
+
+                ${job.error_message ? `
+                <div class="detail-group error-group">
+                    <h3>Error Details</h3>
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ${job.error_message}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${job.transcription_text ? `
+                <div class="detail-group">
+                    <h3>Transcription Preview</h3>
+                    <div class="transcription-preview">
+                        ${job.transcription_text.substring(0, 500)}${job.transcription_text.length > 500 ? '...' : ''}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        document.getElementById('jobModal').style.display = 'flex';
+
+    } catch (error) {
+        console.error('Failed to load job details:', error);
+        showToast('Failed to load job details', 'error');
+    }
+}
+
+// Download result
+async function downloadResult(jobId) {
+    try {
+        window.location.href = `/api/v1/jobs/${jobId}/result`;
+        showToast('Downloading SRT file...', 'success');
+    } catch (error) {
+        console.error('Download failed:', error);
+        showToast('Failed to download result', 'error');
+    }
+}
+
+// Delete job
+async function deleteJob(jobId) {
+    if (!confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/jobs/${jobId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Delete failed');
+        }
+
+        showToast('Job deleted successfully', 'success');
+        loadJobs();
+        loadStatistics();
+
+    } catch (error) {
+        console.error('Delete failed:', error);
+        showToast('Failed to delete job', 'error');
+    }
+}
+
+// Show/hide loading
+function showLoading(show) {
+    document.getElementById('jobsLoading').style.display = show ? 'flex' : 'none';
+    document.getElementById('jobsTable').style.display = show ? 'none' : 'table';
+}
+
+// Event listeners
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadJobs();
+    loadStatistics();
+});
+
+document.getElementById('statusFilter').addEventListener('change', (e) => {
+    currentFilter = e.target.value;
+    loadJobs();
+});
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.job-row');
+
+    rows.forEach(row => {
+        const fileName = row.querySelector('.file-cell span').textContent.toLowerCase();
+        row.style.display = fileName.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Modal controls
+document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('jobModal').style.display = 'none';
+});
+
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('jobModal').style.display = 'none';
+});
+
+// Close modal on outside click
+document.getElementById('jobModal').addEventListener('click', (e) => {
+    if (e.target.id === 'jobModal') {
+        document.getElementById('jobModal').style.display = 'none';
+    }
+});
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    loadJobs();
+    loadStatistics();
+
+    // Auto-refresh every 10 seconds
+    setInterval(() => {
+        loadJobs();
+        loadStatistics();
+    }, 10000);
+});
+
+// Format duration
+function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+    return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+// Cleanup WebSockets on page unload
+window.addEventListener('beforeunload', () => {
+    activeWebSockets.forEach(ws => ws.close());
+});
+</script>
+{% endblock %}

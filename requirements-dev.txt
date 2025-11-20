@@ -1,0 +1,107 @@
+# Development and Testing Dependencies for Frisco Whisper RTX
+# Install with: pip install -r requirements-dev.txt
+
+# ============================================================================
+# Core Testing Framework
+# ============================================================================
+
+# Pytest - Testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0          # Coverage plugin for pytest
+pytest-mock>=3.11.1        # Mock/spy fixtures for pytest
+pytest-asyncio>=0.21.0     # Async support for pytest
+pytest-timeout>=2.1.0      # Timeout support for tests
+pytest-xdist>=3.3.1        # Parallel test execution
+
+# ============================================================================
+# Code Coverage
+# ============================================================================
+
+coverage>=7.3.0            # Code coverage measurement
+coverage-badge>=1.1.0      # Generate coverage badges
+
+# ============================================================================
+# Code Quality and Linting
+# ============================================================================
+
+# Linters
+pylint>=2.17.5            # Python code linter
+flake8>=6.1.0             # Style guide enforcement
+black>=23.7.0             # Code formatter
+isort>=5.12.0             # Import sorter
+mypy>=1.5.0               # Static type checker
+
+# Code quality tools
+autopep8>=2.0.4           # Auto-format to PEP8
+pycodestyle>=2.11.0       # PEP8 style checker
+pydocstyle>=6.3.0         # Docstring style checker
+
+# ============================================================================
+# Testing Utilities
+# ============================================================================
+
+# Mocking and fixtures
+faker>=19.3.1             # Generate fake data for tests
+factory-boy>=3.3.0        # Test fixtures replacement
+responses>=0.23.3         # Mock HTTP requests
+
+# ============================================================================
+# Performance and Benchmarking
+# ============================================================================
+
+pytest-benchmark>=4.0.0   # Benchmark tests
+memory-profiler>=0.61.0   # Memory usage profiling
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+# Documentation generation
+sphinx>=7.1.2             # Documentation generator
+sphinx-rtd-theme>=1.3.0   # Read the Docs theme
+sphinx-autodoc-typehints>=1.24.0  # Type hints in docs
+
+# ============================================================================
+# Data Generation for Tests
+# ============================================================================
+
+numpy>=1.24.3             # Numerical computing (for test audio generation)
+scipy>=1.11.2             # Scientific computing
+# Note: numpy is already in requirements, but included here for clarity
+
+# ============================================================================
+# Test Reporting
+# ============================================================================
+
+pytest-html>=3.2.0        # HTML test reports
+pytest-json-report>=1.5.0 # JSON test reports
+pytest-metadata>=3.0.0    # Metadata for test reports
+
+# ============================================================================
+# Continuous Integration
+# ============================================================================
+
+tox>=4.7.0                # Test automation tool
+pre-commit>=3.3.3         # Git pre-commit hooks
+
+# ============================================================================
+# Debugging
+# ============================================================================
+
+ipdb>=0.13.13             # IPython debugger
+pdbpp>=0.10.3             # Better Python debugger
+pytest-pdb>=0.3.0         # PDB integration for pytest
+
+# ============================================================================
+# Additional Testing Tools
+# ============================================================================
+
+hypothesis>=6.82.6        # Property-based testing
+freezegun>=1.2.2          # Mock datetime for tests
+pytest-freezegun>=0.4.2   # Freezegun integration for pytest
+
+# ============================================================================
+# Environment Management
+# ============================================================================
+
+python-dotenv>=1.0.0      # Environment variable management

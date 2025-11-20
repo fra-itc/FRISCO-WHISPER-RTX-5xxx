@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  whisper-transcribe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: frisco-whisper-rtx:latest
+    container_name: whisper-transcribe-gpu
+
+    # GPU configuration for NVIDIA Container Toolkit
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTHONUNBUFFERED=1
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+      # Model cache directory
+      - HF_HOME=/app/models
+      - TRANSFORMERS_CACHE=/app/models
+
+    # Volume mounts for data persistence
+    volumes:
+      # Audio input files
+      - ./audio:/app/audio:rw
+      # Transcript output files
+      - ./transcripts:/app/transcripts:rw
+      # Log files
+      - ./logs:/app/logs:rw
+      # Model cache (persistent across container restarts)
+      - whisper-models:/app/models:rw
+
+    # Interactive TTY for menu
+    stdin_open: true
+    tty: true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Network mode (optional: for future web UI)
+    # ports:
+    #   - "8000:8000"
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits (optional, adjust based on your system)
+    # mem_limit: 16g
+    # memswap_limit: 16g
+    # cpus: 8
+
+  # Development/debug version (CPU fallback)
+  whisper-transcribe-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: frisco-whisper-rtx:latest
+    container_name: whisper-transcribe-cpu
+    profiles:
+      - cpu-only
+
+    environment:
+      - CUDA_VISIBLE_DEVICES=""
+      - PYTHONUNBUFFERED=1
+
+    volumes:
+      - ./audio:/app/audio:rw
+      - ./transcripts:/app/transcripts:rw
+      - ./logs:/app/logs:rw
+      - whisper-models:/app/models:rw
+
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+# Named volumes for model persistence
+volumes:
+  whisper-models:
+    driver: local
+    name: whisper-model-cache
+
+# Networks (optional: for future microservices architecture)
+networks:
+  default:
+    name: whisper-network
