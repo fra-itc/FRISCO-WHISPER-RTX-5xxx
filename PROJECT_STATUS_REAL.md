@@ -177,6 +177,25 @@ Il sistema **NON È** completamente operativo. La transcription non può funzion
 
 ### 1. Installare ffmpeg/ffprobe
 
+#### ⭐ Opzione A: Setup Automatico Locale (Raccomandato)
+
+```bash
+# Scarica e installa ffmpeg nella cartella del progetto
+# NO PERMESSI ROOT NECESSARI!
+python setup_ffmpeg.py
+
+# Verifica
+python setup_ffmpeg.py --verify
+```
+
+**Vantaggi**:
+- ✅ No sudo/root necessario
+- ✅ Installazione in `bin/` (auto-rilevato da AudioProcessor)
+- ✅ Funziona su Linux x64/arm64, Windows, macOS
+- ✅ Sempre versione compatibile
+
+#### Opzione B: Installazione Sistema
+
 **Ubuntu/Debian**:
 ```bash
 sudo apt-get update

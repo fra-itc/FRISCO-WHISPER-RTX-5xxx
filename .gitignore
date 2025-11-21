@@ -41,6 +41,10 @@ logs/
 *.log
 *.wav
 
+# FFmpeg local binaries (downloaded by setup_ffmpeg.py)
+bin/
+downloads/
+
 # Testing
 .pytest_cache/
 .coverage

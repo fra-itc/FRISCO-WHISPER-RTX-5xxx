@@ -60,20 +60,39 @@ cd FRISCO-WHISPER-RTX-5xxx
 
 > **IMPORTANTE**: ffmpeg è **OBBLIGATORIO** per la conversione audio. Senza ffmpeg, **nessun file audio può essere processato** (inclusi OPUS, MP3, M4A, ecc.).
 
-**Windows:**
-- Scarica da [ffmpeg.org](https://ffmpeg.org/download.html)
-- Aggiungi al PATH di sistema
+#### Opzione A: Installazione Automatica Locale (⭐ Raccomandato)
+
+```bash
+# Scarica e installa ffmpeg nella cartella del progetto (NO ROOT!)
+python setup_ffmpeg.py
+
+# Verifica installazione
+python setup_ffmpeg.py --verify
+```
+
+**Vantaggi**:
+- ✅ No permessi root/admin necessari
+- ✅ Sempre aggiornato e compatibile
+- ✅ Portabile con il progetto
+- ✅ Funziona su Linux, Windows, macOS
+
+📖 **Guida completa**: [FFMPEG_SETUP_GUIDE.md](FFMPEG_SETUP_GUIDE.md)
+
+#### Opzione B: Installazione di Sistema
 
 **Linux (Ubuntu/Debian):**
 ```bash
-sudo apt update
-sudo apt install ffmpeg
+sudo apt update && sudo apt install ffmpeg
 ```
 
 **macOS:**
 ```bash
 brew install ffmpeg
 ```
+
+**Windows:**
+- Scarica da [ffmpeg.org](https://ffmpeg.org/download.html)
+- Aggiungi al PATH di sistema
 
 **Verifica installazione:**
 ```bash

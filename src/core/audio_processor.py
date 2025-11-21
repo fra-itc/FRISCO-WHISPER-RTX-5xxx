@@ -99,7 +99,43 @@ class AudioProcessor:
         self.supported_formats = self.SUPPORTED_FORMATS.copy()
         self.target_sample_rate = self.TARGET_SAMPLE_RATE
         self.target_channels = self.TARGET_CHANNELS
+
+        # Check for local ffmpeg first, then system
+        self.ffmpeg_path, self.ffprobe_path = self._find_ffmpeg_binaries()
         self._ffmpeg_available = self._check_ffmpeg()
+
+    def _find_ffmpeg_binaries(self) -> tuple:
+        """
+        Find ffmpeg and ffprobe binaries.
+
+        Search order:
+        1. Project's bin/ directory (local installation)
+        2. System PATH
+
+        Returns:
+            Tuple of (ffmpeg_path, ffprobe_path)
+        """
+        import platform
+
+        # Determine binary names
+        is_windows = platform.system().lower() == 'windows'
+        ffmpeg_name = 'ffmpeg.exe' if is_windows else 'ffmpeg'
+        ffprobe_name = 'ffprobe.exe' if is_windows else 'ffprobe'
+
+        # 1. Check project's bin/ directory
+        project_root = Path(__file__).parent.parent.parent
+        local_bin_dir = project_root / 'bin'
+
+        local_ffmpeg = local_bin_dir / ffmpeg_name
+        local_ffprobe = local_bin_dir / ffprobe_name
+
+        if local_ffmpeg.exists() and local_ffprobe.exists():
+            logger.info(f"Using local ffmpeg from {local_bin_dir}")
+            return str(local_ffmpeg), str(local_ffprobe)
+
+        # 2. Use system PATH (default behavior)
+        logger.info("Using system ffmpeg from PATH")
+        return ffmpeg_name, ffprobe_name
 
     def _check_ffmpeg(self) -> bool:
         """
@@ -110,18 +146,23 @@ class AudioProcessor:
         """
         try:
             subprocess.run(
-                ['ffmpeg', '-version'],
+                [self.ffmpeg_path, '-version'],
                 capture_output=True,
                 check=True
             )
             subprocess.run(
-                ['ffprobe', '-version'],
+                [self.ffprobe_path, '-version'],
                 capture_output=True,
                 check=True
             )
+            logger.info(f"ffmpeg available: {self.ffmpeg_path}")
             return True
         except (subprocess.CalledProcessError, FileNotFoundError):
-            logger.error("ffmpeg/ffprobe not found - audio processing disabled")
+            logger.error(
+                f"ffmpeg/ffprobe not found - audio processing disabled\n"
+                f"  Searched: {self.ffmpeg_path}, {self.ffprobe_path}\n"
+                f"  Solution: Run 'python setup_ffmpeg.py' to install locally"
+            )
             return False
 
     def is_supported_format(self, file_path: str) -> bool:
@@ -170,7 +211,7 @@ class AudioProcessor:
         try:
             # Run ffprobe to get metadata
             cmd = [
-                'ffprobe',
+                self.ffprobe_path,
                 '-v', 'quiet',
                 '-print_format', 'json',
                 '-show_format',
@@ -363,7 +404,7 @@ class AudioProcessor:
         try:
             # Build ffmpeg command
             cmd = [
-                'ffmpeg',
+                self.ffmpeg_path,
                 '-i', str(input_path),
                 '-ar', str(self.TARGET_SAMPLE_RATE),
                 '-ac', str(self.TARGET_CHANNELS),
@@ -491,7 +532,7 @@ class AudioProcessor:
                 output_path = output_dir / f"{input_path.stem}_chunk_{i:03d}.wav"
 
                 cmd = [
-                    'ffmpeg',
+                    self.ffmpeg_path,
                     '-i', str(input_path),
                     '-ss', str(start_time),
                     '-t', str(chunk_duration),
@@ -559,7 +600,7 @@ class AudioProcessor:
 
             # Run ffmpeg concat
             cmd = [
-                'ffmpeg',
+                self.ffmpeg_path,
                 '-f', 'concat',
                 '-safe', '0',
                 '-i', list_file,
