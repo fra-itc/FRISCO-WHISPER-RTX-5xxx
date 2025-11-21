@@ -1,0 +1,88 @@
+{
+  "timestamp": "2025-11-20T17:31:53.261716",
+  "system_info": {
+    "database": "C:\\Users\\Fra\\AppData\\Local\\Temp\\frisco_benchmark_uzsd08a6\\benchmark.db",
+    "test_dir": "C:\\Users\\Fra\\AppData\\Local\\Temp\\frisco_benchmark_uzsd08a6"
+  },
+  "results": [
+    {
+      "name": "Batch Upload (100 files)",
+      "duration_seconds": 9.242,
+      "operations": 100,
+      "throughput_ops_per_sec": 10.82,
+      "metadata": {
+        "files_uploaded": 100,
+        "avg_time_per_file_ms": 92.42
+      }
+    },
+    {
+      "name": "Job Creation (1000 jobs)",
+      "duration_seconds": 0.381,
+      "operations": 1000,
+      "throughput_ops_per_sec": 2623.45,
+      "metadata": {
+        "jobs_created": 1000,
+        "avg_time_per_job_ms": 0.381
+      }
+    },
+    {
+      "name": "Transcript Save (100 transcripts)",
+      "duration_seconds": 0.041,
+      "operations": 100,
+      "throughput_ops_per_sec": 2465.7,
+      "metadata": {
+        "transcripts_saved": 100,
+        "segments_per_transcript": 10,
+        "avg_time_per_transcript_ms": 0.41
+      }
+    },
+    {
+      "name": "Search Performance (100 searches on 1000 docs)",
+      "duration_seconds": 0.048,
+      "operations": 100,
+      "throughput_ops_per_sec": 2083.69,
+      "metadata": {
+        "corpus_size": 1000,
+        "searches_performed": 100,
+        "avg_results_per_search": 50.0,
+        "avg_search_time_ms": 0.48
+      }
+    },
+    {
+      "name": "Concurrent Operations (5 threads, 20 ops each)",
+      "duration_seconds": 0.157,
+      "operations": 100,
+      "throughput_ops_per_sec": 636.1,
+      "metadata": {
+        "threads": 5,
+        "operations_per_thread": 20,
+        "total_operations": 100,
+        "avg_time_per_operation_ms": 1.57
+      }
+    },
+    {
+      "name": "Version Operations (50 transcripts \u00d7 10 versions)",
+      "duration_seconds": 0.162,
+      "operations": 500,
+      "throughput_ops_per_sec": 3078.82,
+      "metadata": {
+        "transcripts": 50,
+        "versions_per_transcript": 10,
+        "total_versions_created": 500,
+        "avg_time_per_version_ms": 0.32
+      }
+    },
+    {
+      "name": "Export Performance (50 transcripts \u00d7 5 formats)",
+      "duration_seconds": 0.149,
+      "operations": 250,
+      "throughput_ops_per_sec": 1673.03,
+      "metadata": {
+        "transcripts": 50,
+        "formats": 5,
+        "total_exports": 250,
+        "avg_time_per_export_ms": 0.6
+      }
+    }
+  ]
+}

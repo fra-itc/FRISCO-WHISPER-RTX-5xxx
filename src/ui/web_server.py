@@ -261,14 +261,24 @@ async def create_transcription(
         except Exception:
             duration = None
 
+        # Get compute type and device from transcription service engine
+        # Engine is lazy-loaded, so access it to get current config
+        try:
+            compute_type = transcription_service.engine.compute_type
+            device = transcription_service.engine.device
+        except Exception as e:
+            logger.warning(f"Could not get engine config, using defaults: {e}")
+            compute_type = "float16"
+            device = "cuda"
+
         # Create job in database
         job_id = db_manager.create_job(
             file_path=str(file_path),
             model_size=request.model_size,
             task_type=request.task_type,
             language=request.language,
-            compute_type=transcription_engine.compute_type,
-            device=transcription_engine.device,
+            compute_type=compute_type,
+            device=device,
             beam_size=request.beam_size,
             duration_seconds=duration
         )

@@ -151,13 +151,13 @@ def test_gpu():
         print_colored("="*50, Colors.CYAN)
         
         if results.get('float16'):
-            print_colored("✓ Usa FLOAT16 per prestazioni ottimali RTX 5080", Colors.GREEN)
+            print_colored("[OK] Usa FLOAT16 per prestazioni ottimali RTX 5080", Colors.GREEN)
             return 'float16'
         elif results.get('int8'):
-            print_colored("✓ Usa INT8 per velocità massima", Colors.GREEN)
+            print_colored("[OK] Usa INT8 per velocita massima", Colors.GREEN)
             return 'int8'
         elif results.get('float32'):
-            print_colored("✓ Usa FLOAT32 (compatibilità universale)", Colors.GREEN)
+            print_colored("[OK] Usa FLOAT32 (compatibilita universale)", Colors.GREEN)
             return 'float32'
         else:
             print_colored("! Nessun compute type GPU funzionante, uso CPU", Colors.YELLOW)
