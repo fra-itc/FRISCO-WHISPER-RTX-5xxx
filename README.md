@@ -16,7 +16,7 @@ Strumento professionale di trascrizione audio basato su OpenAI Whisper con accel
 - **Traduzione automatica** verso italiano
 - **Rilevamento automatico** della lingua sorgente
 - **Batch processing** per elaborare più file contemporaneamente
-- **Supporto multi-formato**: M4A, MP3, WAV, MP4, AAC, FLAC
+- **Supporto multi-formato**: M4A, MP3, WAV, MP4, AAC, FLAC, OGG, **OPUS** (WhatsApp audio)
 
 ### Ottimizzazioni RTX 5xxx
 - **CUDA float16** per prestazioni ottimali su architettura Ada Lovelace
@@ -43,7 +43,7 @@ Strumento professionale di trascrizione audio basato su OpenAI Whisper con accel
 - **Python**: 3.8 o superiore
 - **CUDA Toolkit**: 12.4 o superiore (**12.6 raccomandato per RTX 5080**)
 - **PyTorch**: 2.5.1+ con supporto sm_120
-- **ffmpeg**: Per conversione audio
+- **ffmpeg**: ⚠️ **RICHIESTO** - Critico per conversione audio (incluso OPUS)
 - **Sistema operativo**: Windows 10/11, Linux (Ubuntu 20.04+)
 
 > **Nota RTX 5080**: La RTX 5080 richiede PyTorch 2.5.1+ compilato con CUDA 12.4+ per supporto completo della compute capability sm_120. Vedi [PYTORCH_RTX5080_UPGRADE_GUIDE.md](PYTORCH_RTX5080_UPGRADE_GUIDE.md) per istruzioni dettagliate.
@@ -56,7 +56,9 @@ git clone https://github.com/fra-itc/FRISCO-WHISPER-RTX-5xxx.git
 cd FRISCO-WHISPER-RTX-5xxx
 ```
 
-### 2. Installa ffmpeg
+### 2. Installa ffmpeg (⚠️ CRITICO)
+
+> **IMPORTANTE**: ffmpeg è **OBBLIGATORIO** per la conversione audio. Senza ffmpeg, **nessun file audio può essere processato** (inclusi OPUS, MP3, M4A, ecc.).
 
 **Windows:**
 - Scarica da [ffmpeg.org](https://ffmpeg.org/download.html)
@@ -71,6 +73,12 @@ sudo apt install ffmpeg
 **macOS:**
 ```bash
 brew install ffmpeg
+```
+
+**Verifica installazione:**
+```bash
+ffmpeg -version
+ffprobe -version
 ```
 
 ### 3. Installa PyTorch con supporto RTX 5080
@@ -185,6 +193,10 @@ FRISCO-WHISPER-RTX-5xxx/
 - `.mp4` - Video MP4 (estrae audio)
 - `.aac` - Audio AAC grezzo
 - `.flac` - Audio lossless
+- `.ogg` - Ogg Vorbis
+- `.opus` - Opus audio (WhatsApp, Telegram)
+- `.wma` - Windows Media Audio
+- `.waptt` - WhatsApp audio (formato OPUS)
 
 ### Output
 - `.srt` - Sottotitoli (formato SubRip)
@@ -257,14 +269,40 @@ python test_gpu.py
 
 📖 **Guida completa**: [PYTORCH_RTX5080_UPGRADE_GUIDE.md](PYTORCH_RTX5080_UPGRADE_GUIDE.md)
 
-### ffmpeg non trovato
-```bash
-# Linux
-sudo apt install ffmpeg
+### ffmpeg non trovato / Audio processing non funzionante
 
-# Windows: aggiungi ffmpeg.exe al PATH
+**Sintomi:**
+- Errore: "ffmpeg/ffprobe not found - audio processing disabled"
+- File OPUS, MP3, M4A non vengono processati
+- Conversione audio fallisce
+
+**Soluzione:**
+```bash
+# Verifica se ffmpeg è installato
+which ffmpeg ffprobe
+
+# Se non presente, installa:
+
+# Linux (Ubuntu/Debian)
+sudo apt update
+sudo apt install -y ffmpeg
+
 # macOS
 brew install ffmpeg
+
+# Windows:
+# 1. Scarica da https://ffmpeg.org/download.html
+# 2. Estrai in C:\ffmpeg
+# 3. Aggiungi C:\ffmpeg\bin al PATH di sistema
+```
+
+**Test dopo installazione:**
+```bash
+# Verifica ffmpeg
+ffmpeg -version
+
+# Test AudioProcessor
+python -c "from src.core.audio_processor import AudioProcessor; print('✅ OK' if AudioProcessor()._ffmpeg_available else '❌ FAIL')"
 ```
 
 ### Out of Memory (VRAM)

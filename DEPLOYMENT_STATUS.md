@@ -1,8 +1,10 @@
 # Deployment Status - RTX 5080 PyTorch Upgrade
 
-**Date**: 2025-11-20
+**Date**: 2025-11-21 (Updated)
 **Version**: 1.3.0
-**Status**: ✅ DEPLOYED AND OPERATIONAL
+**Status**: ⚠️ REQUIRES SYSTEM DEPENDENCIES
+
+> **IMPORTANTE**: Questo documento è stato aggiornato il 2025-11-21 per riflettere lo stato **REALE** del deployment. Vedi [PROJECT_STATUS_REAL.md](PROJECT_STATUS_REAL.md) per l'analisi completa.
 
 ---
 
@@ -58,23 +60,27 @@
 
 ### Pre-Deployment
 - [x] PyTorch 2.9.1+cu126 installed
+- [ ] ❌ **ffmpeg/ffprobe installed** - **REQUIRED**
 - [x] GPU detected and functional
 - [x] Whisper model tested successfully
 - [x] Benchmark completed (3.1x realtime)
 - [x] Documentation updated
 
 ### Deployment
-- [x] Web server started on port 8000
+- [x] Web server code ready
 - [x] Database migrations applied
 - [x] File managers initialized
-- [x] Transcription service ready
+- [x] Transcription service code ready
 - [x] GPU status available via API
+- [ ] ❌ **Audio processing functional** - **BLOCKED by ffmpeg**
 
-### Post-Deployment
-- [x] Server accessible at http://localhost:8000
-- [x] API documentation available at /docs
-- [x] GPU operations verified
-- [x] All services operational
+### Post-Deployment (After ffmpeg installation)
+- [ ] Server accessible at http://localhost:8000
+- [ ] API documentation available at /docs
+- [ ] GPU operations verified
+- [ ] Audio conversion tested
+- [ ] OPUS file processing tested
+- [ ] End-to-end transcription verified
 
 ---
 
@@ -208,7 +214,21 @@ FRISCO-WHISPER-RTX-5xxx/
 
 ---
 
-## ⚠️ Known Issues
+## ⚠️ Known Issues & Prerequisites
+
+### ⚠️ CRITICAL: ffmpeg/ffprobe Required (2025-11-21)
+- **Issue**: ffmpeg/ffprobe NOT installed on system
+- **Impact**: ❌ Audio processing completely disabled
+- **Affected**: ALL audio conversion (OPUS, MP3, M4A, AAC, FLAC, etc.)
+- **Status**: **BLOCKING** - System cannot process audio files
+- **Resolution**:
+  ```bash
+  # Linux/Ubuntu
+  sudo apt update && sudo apt install -y ffmpeg
+
+  # Verify
+  ffmpeg -version && ffprobe -version
+  ```
 
 ### 1. PyTorch sm_120 Warning
 - **Issue**: Warning about sm_120 compatibility
@@ -257,18 +277,20 @@ FRISCO-WHISPER-RTX-5xxx/
 
 ## 🎯 Success Criteria
 
-All criteria met ✅:
+**Status**: ⚠️ PARTIALLY MET (4/10 - Blocked by ffmpeg)
 
-- [x] Web server running on port 8000
-- [x] GPU detected and operational
-- [x] Database initialized with migrations
-- [x] File upload working
-- [x] Transcription service ready
-- [x] API endpoints accessible
-- [x] WebSocket connections supported
-- [x] Documentation complete
-- [x] Benchmark tests passing
-- [x] Performance acceptable (3x realtime)
+- [ ] ❌ Web server running on port 8000 (not tested)
+- [x] ✅ GPU detected and operational
+- [x] ✅ Database initialized with migrations
+- [ ] ❌ File upload working (requires ffmpeg for audio)
+- [ ] ❌ Transcription service ready (blocked by ffmpeg)
+- [x] ✅ API endpoints accessible (code ready)
+- [x] ✅ WebSocket connections supported (code ready)
+- [x] ✅ Documentation complete (updated 2025-11-21)
+- [ ] ❌ Benchmark tests passing (requires ffmpeg)
+- [ ] ❌ Performance acceptable (cannot test without ffmpeg)
+
+**After ffmpeg installation, all criteria should pass.**
 
 ---
 
@@ -293,21 +315,43 @@ All criteria met ✅:
 
 ## 🎉 Conclusion
 
-**System Status**: ✅ FULLY OPERATIONAL
+**System Status**: ⚠️ REQUIRES ffmpeg INSTALLATION
 
-The Frisco Whisper RTX 5xxx application is successfully deployed and running with:
-- Modern web interface (FastAPI + WebSocket)
-- GPU-accelerated transcription (RTX 5080)
-- Database-backed storage (SQLite + FTS5)
-- Real-time progress updates
-- Complete API documentation
+The Frisco Whisper RTX 5xxx application has **complete code** but requires **system dependencies**:
 
-**Ready for production use!** 🚀
+**Code Status** (✅ Complete):
+- ✅ Modern web interface (FastAPI + WebSocket)
+- ✅ GPU-accelerated transcription engine (RTX 5080)
+- ✅ Database-backed storage (SQLite + FTS5)
+- ✅ Real-time progress updates
+- ✅ Complete API documentation
+- ✅ OPUS format support in code
+
+**Runtime Status** (❌ Blocked):
+- ❌ **ffmpeg/ffprobe NOT installed** → Audio processing disabled
+- ❌ Cannot process OPUS files (or any audio format)
+- ❌ Transcription service non-functional
+
+**To Make Operational**:
+```bash
+# Install ffmpeg
+sudo apt update && sudo apt install -y ffmpeg
+
+# Verify
+python -c "from src.core.audio_processor import AudioProcessor; print('✅ OK' if AudioProcessor()._ffmpeg_available else '❌ FAIL')"
+
+# Then start server
+python src/ui/web_server.py
+```
+
+**After ffmpeg installation → Ready for production use!** 🚀
 
 ---
 
-**Deployed by**: Claude Code
-**Date**: 2025-11-20 21:35 UTC
+**Updated by**: Claude Code
+**Date**: 2025-11-21 (Status verification)
 **PyTorch Version**: 2.9.1+cu126
-**Server**: http://localhost:8000
-**Status**: ✅ ONLINE
+**Critical Blocker**: ffmpeg not installed
+**Status**: ⚠️ **PENDING SYSTEM DEPENDENCIES**
+
+**See**: [PROJECT_STATUS_REAL.md](PROJECT_STATUS_REAL.md) for complete analysis
